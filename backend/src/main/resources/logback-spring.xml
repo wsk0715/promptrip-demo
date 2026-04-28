@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Include defaults -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+    <!-- Console Pattern from Reference -->
+    <property name="CONSOLE_PATTERN" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} [%clr(${HOSTNAME:-localhost}){green}:%clr(${PID:- }){magenta}] %clr([%15.15t]){faint} %clr(---){faint} %clr(%-35.35(%logger{30}:%L)){cyan} %clr(%5p) %clr([%X{requestId}]){faint} %m %clr(from %X{clientIp:-annonymous} [%X{userInfo}]){faint}%n%wEx" />
+
+    <!-- Simple Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Project Logger -->
+    <logger name="com.promptrip.core" level="DEBUG" />
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>
