@@ -1,35 +1,32 @@
-# 빌드 스테이지
 FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
-# Gradle Wrapper & 설정 파일 복사
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle settings.gradle ./
 
-# 실행 권한 부여
 RUN chmod +x ./gradlew
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew dependencies --no-daemon
 
-# 소스 코드 복사
 COPY src src
 
-# 프로젝트 빌드 (테스트 생략)
 RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew bootJar -x test --no-daemon --build-cache
+    ./gradlew bootJar -x test --no-daemon
 
-# ------------------------------------------------
+RUN java -Djarmode=layertools -jar build/libs/*.jar extract --destination build/extracted
 
-# 실행 스테이지
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# 빌드 스테이지에서 생성된 JAR 파일 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/extracted/dependencies/ ./
+COPY --from=builder /app/build/extracted/spring-boot-loader/ ./
+COPY --from=builder /app/build/extracted/snapshot-dependencies/ ./
+COPY --from=builder /app/build/extracted/application/ ./
 
-# 컨테이너 포트 노출
 EXPOSE 8080
 
-# 애플리케이션 실행
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS=""
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

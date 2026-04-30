@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17
+    image: pgvector/pgvector:pg17
     container_name: promptrip-db
     restart: always
     env_file:
@@ -8,8 +8,9 @@ services:
       - .secret.env
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "15432:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost"]
       interval: 5s
@@ -27,7 +28,7 @@ services:
     volumes:
       - ./logs:/app/logs
     ports:
-      - "8080:8080"
+      - "18080:8080"
     depends_on:
       db:
         condition: service_healthy
