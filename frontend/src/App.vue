@@ -13,8 +13,7 @@
           <span class="text-2xl font-black tracking-tighter text-slate-900">PROMPTRIP</span>
         </RouterLink>
         <div class="flex gap-6 text-sm font-medium text-slate-600">
-          <RouterLink to="/" class="hover:text-indigo-600 transition-colors" active-class="text-indigo-600">Map</RouterLink>
-          <RouterLink to="/dashboard" class="hover:text-indigo-600 transition-colors" active-class="text-indigo-600">Dashboard</RouterLink>
+          <RouterLink to="/" class="hover:text-indigo-600 transition-colors" active-class="text-indigo-600">Map Explorer</RouterLink>
         </div>
       </div>
     </nav>
