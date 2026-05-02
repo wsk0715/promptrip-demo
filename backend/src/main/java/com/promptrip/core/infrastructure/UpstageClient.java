@@ -45,7 +45,7 @@ public class UpstageClient {
                 "model", "solar-1-mini-chat",
                 "messages", List.of(
                     Map.of("role", "system", "content", "You are a travel planner. Return ONLY a JSON object in this format: " +
-                        "{\"title\": \"string\", \"plans\": [{\"day\": number, \"items\": [{\"time\": \"string\", \"location\": \"string\", \"description\": \"string\"}]}]}"),
+                        "{\"title\": \"string\", \"plans\": [{\"day\": number, \"items\": [{\"time\": \"string\", \"location\": \"string\", \"description\": \"string\", \"lat\": number, \"lng\": number}]}]}"),
                     Map.of("role", "user", "content", prompt)
                 )
             );

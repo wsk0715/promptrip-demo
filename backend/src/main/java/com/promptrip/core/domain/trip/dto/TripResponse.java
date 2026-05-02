@@ -33,5 +33,7 @@ public class TripResponse {
         private String time;
         private String location;
         private String description;
+        private Double lat;
+        private Double lng;
     }
 }
