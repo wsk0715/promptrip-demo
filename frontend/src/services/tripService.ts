@@ -1,17 +1,13 @@
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { TripResponse } from '../types/trip';
 
-/**
- * Global Shared State for Trip Planner
- * This ensures MainView and TripDashboard are always in sync.
- */
-const currentTrip = ref<TripResponse | null>(null);
-const logs = ref<string[]>([]);
-const isProcessing = ref(false);
-const error = ref<string | null>(null);
-const prompt = ref(''); // Global input state
-
-export const useTripPlanner = () => {
+export const useTripStore = defineStore('trip', () => {
+  const currentTrip = ref<TripResponse | null>(null);
+  const logs = ref<string[]>([]);
+  const isProcessing = ref(false);
+  const error = ref<string | null>(null);
+  const prompt = ref('');
 
   const startPlanning = async (query: string) => {
     prompt.value = query;
@@ -90,8 +86,8 @@ export const useTripPlanner = () => {
     logs,
     isProcessing,
     error,
-    prompt, // Expose prompt
+    prompt,
     startPlanning,
     resetPlanner
   };
-};
+});

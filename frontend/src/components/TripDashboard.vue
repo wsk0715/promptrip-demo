@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useTripPlanner } from '../services/tripService';
-import { Send, Loader2, Wand2, Coffee, Moon, Utensils, TreePine, MapPin, Clock, ArrowRight } from 'lucide-vue-next';
+import { useTripStore } from '../services/tripService';
+import { Send, Loader2, Wand2, Coffee, Moon, Utensils, TreePine, MapPin, Clock, ArrowRight, Navigation } from 'lucide-vue-next';
 
-const { currentTrip, logs, isProcessing, error, prompt, startPlanning, resetPlanner } = useTripPlanner();
+const tripStore = useTripStore();
 
 const emit = defineEmits(['trip-update', 'processing-start', 'reset']);
 
@@ -17,22 +16,22 @@ const presets = [
 ];
 
 const handleSearch = () => {
-  if (!prompt.value.trim()) return;
+  if (!tripStore.prompt.trim()) return;
   emit('processing-start');
-  startPlanning(prompt.value);
+  tripStore.startPlanning(tripStore.prompt);
 };
 
 const handlePresetClick = (query: string) => {
-  prompt.value = query;
+  tripStore.prompt = query;
   emit('processing-start');
-  startPlanning(query);
+  tripStore.startPlanning(query);
 };
 </script>
 
 <template>
   <div class="p-4 space-y-6">
     <!-- Quick Presets -->
-    <div v-if="!isProcessing && !currentTrip" class="px-1 animate-in">
+    <div v-if="!tripStore.isProcessing && !tripStore.currentTrip" class="px-1 animate-in">
       <div class="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
         <button 
           v-for="preset in presets" 
@@ -46,58 +45,58 @@ const handlePresetClick = (query: string) => {
       </div>
     </div>
 
-    <!-- Search Section (Simplified Widget Style) -->
-    <div v-if="!currentTrip || isProcessing" class="bg-slate-50 p-4 rounded-3xl border border-slate-200/60 shadow-inner">
+    <!-- Search Section -->
+    <div v-if="!tripStore.currentTrip || tripStore.isProcessing" class="bg-slate-50 p-4 rounded-3xl border border-slate-200/60 shadow-inner">
       <div class="relative group">
         <textarea
-          v-model="prompt"
+          v-model="tripStore.prompt"
           placeholder="어디로 떠나고 싶으신가요? (예: 전주 1박 2일 먹방 여행)"
           class="w-full p-4 pr-14 bg-white border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all resize-none h-32 text-base font-medium placeholder:text-slate-400 shadow-sm"
-          :disabled="isProcessing"
+          :disabled="tripStore.isProcessing"
           @keydown.enter.prevent="handleSearch"
         ></textarea>
         <button 
           @click="handleSearch"
-          :disabled="isProcessing || !prompt.trim()"
+          :disabled="tripStore.isProcessing || !tripStore.prompt.trim()"
           class="absolute bottom-4 right-4 p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-90 disabled:opacity-50"
         >
-          <Send v-if="!isProcessing" class="w-6 h-6" />
+          <Send v-if="!tripStore.isProcessing" class="w-6 h-6" />
           <Loader2 v-else class="w-6 h-6 animate-spin" />
         </button>
       </div>
     </div>
 
     <!-- Processing Logs -->
-    <div v-if="logs.length > 0 || isProcessing" class="bg-slate-900 text-slate-300 p-5 rounded-2xl font-mono text-xs shadow-inner relative overflow-hidden">
+    <div v-if="tripStore.logs.length > 0 || tripStore.isProcessing" class="bg-slate-900 text-slate-300 p-5 rounded-2xl font-mono text-xs shadow-inner relative overflow-hidden">
       <div class="flex items-center gap-2 mb-3 text-slate-500 border-b border-white/10 pb-2">
         <span class="text-[10px] uppercase tracking-widest font-bold">Trip Agent Logs</span>
       </div>
       <div class="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
-        <div v-for="(log, i) in logs" :key="i" class="flex gap-2 animate-in fade-in slide-in-from-left-2">
+        <div v-for="(log, i) in tripStore.logs" :key="i" class="flex gap-2 animate-in fade-in slide-in-from-left-2">
           <span class="text-indigo-400 opacity-50">{{ i + 1 }}</span>
           <span>{{ log }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Result Section (Enhanced for MVP) -->
-    <div v-if="currentTrip?.plans && !isProcessing" class="animate-in fade-in zoom-in-95 duration-500 pb-4">
+    <!-- Result Section -->
+    <div v-if="tripStore.currentTrip?.plans && !tripStore.isProcessing" class="animate-in fade-in zoom-in-95 duration-500 pb-4">
       <div class="px-2 mb-6">
         <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-          🎯 {{ currentTrip.title }}
+          🎯 {{ tripStore.currentTrip.title }}
         </h3>
         <p class="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
-          {{ currentTrip.summary }}
+          {{ tripStore.currentTrip.summary }}
         </p>
         <div class="flex items-center gap-2 mt-4">
           <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full border border-indigo-100 uppercase tracking-tighter">
-            Estimated {{ currentTrip.totalDuration }}
+            Estimated {{ tripStore.currentTrip.totalDuration }}
           </span>
         </div>
       </div>
 
       <div class="space-y-6">
-        <div v-for="day in currentTrip.plans" :key="day.day" class="space-y-4">
+        <div v-for="day in tripStore.currentTrip.plans" :key="day.day" class="space-y-4">
           <div class="flex items-center gap-3 px-2">
             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Day {{ day.day }}</span>
             <div class="h-px flex-1 bg-slate-100"></div>
@@ -105,7 +104,6 @@ const handlePresetClick = (query: string) => {
           
           <div class="space-y-4 relative ml-3 border-l-2 border-slate-100 pl-7 py-1">
             <div v-for="(item, idx) in day.items" :key="idx" class="relative group">
-              <!-- Number Indicator -->
               <div class="absolute -left-[39px] top-0 w-6 h-6 rounded-full bg-white border-2 border-indigo-600 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 {{ idx + 1 }}
               </div>
@@ -149,7 +147,7 @@ const handlePresetClick = (query: string) => {
           다시 추천받기
         </button>
         <button 
-          @click="emit('trip-update', currentTrip)"
+          @click="emit('trip-update', tripStore.currentTrip)"
           class="py-4 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
         >
           <Navigation class="w-4 h-4 fill-white" />

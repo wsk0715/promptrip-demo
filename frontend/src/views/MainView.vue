@@ -10,7 +10,7 @@ import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
 import { Sparkles, Star, Search, Menu, Navigation, Map, User, Compass } from 'lucide-vue-next'
 import { getRecommendedDistricts } from '../api/districtApi'
 import { getNearbyPlaces } from '../api/tourApi'
-import { useTripPlanner } from '../services/tripService'
+import { useTripStore } from '../services/tripService'
 import type { Place } from '../api/tourApi'
 import type { District } from '../types/district'
 import type { TripResponse } from '../types/trip'
@@ -20,7 +20,7 @@ const mapRef = ref<any>(null)
 const searchQuery = ref('')
 const districts = ref<District[]>([])
 const places = ref<Place[]>([])
-const { currentTrip, resetPlanner } = useTripPlanner()
+const tripStore = useTripStore()
 const recentCourses = ref<TripResponse[]>([])
 const activeTab = ref('home')
 const activeCategory = ref('전체')
@@ -103,12 +103,12 @@ const handleProcessingStart = () => {
 
 const handlePlannerReset = () => {
   // Clear course and shrink back to initial chat state
-  currentCourse.value = null
+  tripStore.resetPlanner()
   chatFrameRef.value?.snapTo('MID')
 }
 
 const handleTripUpdate = (course: TripResponse) => {
-  currentCourse.value = course
+  tripStore.currentTrip = course
   if (!recentCourses.value.find(c => c.title === course.title)) {
     recentCourses.value.unshift(course)
     if (recentCourses.value.length > 5) recentCourses.value.pop()
@@ -188,7 +188,7 @@ onMounted(async () => {
         <NaverMap 
           ref="mapRef" 
           :districts="districts" 
-          :course="currentCourse" 
+          :course="tripStore.currentTrip" 
           :places="filteredPlaces" 
           :initialLat="initialCoords.lat"
           :initialLng="initialCoords.lng"
@@ -262,7 +262,7 @@ onMounted(async () => {
           title="최근 길찾기"
           :icon="Navigation"
         >
-          <DirectionsWidget :recentCourses="recentCourses" @selectCourse="currentCourse = $event; activeWidget = 'nearby'" />
+          <DirectionsWidget :recentCourses="recentCourses" @selectCourse="tripStore.currentTrip = $event; activeWidget = 'nearby'" />
         </MapWidgetFrame>
       </main>
 
