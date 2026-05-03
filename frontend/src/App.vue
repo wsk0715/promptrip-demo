@@ -1,40 +1,39 @@
 <script setup lang="ts">
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 selection:bg-indigo-100">
-    <!-- Navbar -->
-    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4">
-      <div class="max-w-7xl mx-auto flex justify-between items-center">
-        <RouterLink to="/" class="flex items-center gap-2">
-          <div class="bg-indigo-600 p-2 rounded-xl">
-             <Plane class="text-white w-6 h-6" />
-          </div>
-          <span class="text-2xl font-black tracking-tighter text-slate-900">PROMPTRIP</span>
-        </RouterLink>
-        <div class="flex gap-6 text-sm font-medium text-slate-600">
-          <RouterLink to="/" class="hover:text-indigo-600 transition-colors" active-class="text-indigo-600">Map Explorer</RouterLink>
-        </div>
-      </div>
-    </nav>
-
+  <div class="h-screen w-full bg-white overflow-hidden">
     <RouterView />
-
-    <footer class="mt-auto py-8 text-center text-slate-400 text-sm border-t border-slate-100">
-      &copy; 2026 Promptrip AI Agent. Built with Vue 3 & Spring Boot 3.4
-    </footer>
   </div>
 </template>
 
-<script lang="ts">
-import { Plane } from 'lucide-vue-next';
-export default { components: { Plane } }
-</script>
-
 <style>
-body {
+/* Global Reset for App Style */
+html {
+  font-size: 110%; /* Globally scale up all text sizes */
+}
+body, html {
   margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: #f8fafc;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+/* Hide scrollbars globally for a cleaner app look */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>
