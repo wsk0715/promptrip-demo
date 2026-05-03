@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Compass } from 'lucide-vue-next'
 import type { Place } from '../../api/tourApi'
 
 const props = defineProps<{

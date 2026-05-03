@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin, Clock, Users, Ticket, Plus } from 'lucide-vue-next'
+import { Clock, Users, Ticket, Plus } from 'lucide-vue-next'
 import type { District } from '../../types/district'
 
 const props = defineProps<{

@@ -9,4 +9,9 @@ export interface District {
   description: string;
   status: string;
   keywords: string[];
+  // Extended fields for MVP
+  reason?: string;
+  avgStay?: string;
+  avgTime?: string;
+  congestion?: string;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin, Sparkles, Clock, ChevronRight } from 'lucide-vue-next'
+import { Sparkles, Clock, ChevronRight } from 'lucide-vue-next'
 import type { TripResponse } from '../../types/trip'
 
 const props = defineProps<{

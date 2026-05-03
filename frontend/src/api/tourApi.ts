@@ -18,7 +18,7 @@ export interface Place {
  * 주변 장소 조회 API 모킹
  * 서울시청 주변의 실제 관광지/맛집 데이터를 반환합니다.
  */
-export const getNearbyPlaces = async (lat: number, lng: number, radius: number = 3000): Promise<ApiResult<Place[]>> => {
+export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: number = 3000): Promise<ApiResult<Place[]>> => {
   await new Promise(resolve => setTimeout(resolve, 400));
 
   const mockPlaces: Place[] = [

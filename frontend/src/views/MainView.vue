@@ -7,7 +7,7 @@ import MapWidgetFrame from '../components/widgets/MapWidgetFrame.vue'
 import NearbyWidget from '../components/widgets/NearbyWidget.vue'
 import DistrictInfoWidget from '../components/widgets/DistrictInfoWidget.vue'
 import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
-import { Sparkles, Star, Search, Menu, Navigation, Map, User, Compass } from 'lucide-vue-next'
+import { Sparkles, Star, Search, Menu, Navigation, Map, User, Compass, MapPin } from 'lucide-vue-next'
 import { getRecommendedDistricts } from '../api/districtApi'
 import { getNearbyPlaces } from '../api/tourApi'
 import { useTripStore } from '../services/tripService'
@@ -24,6 +24,14 @@ const tripStore = useTripStore()
 const recentCourses = ref<TripResponse[]>([])
 const activeTab = ref('home')
 const activeCategory = ref('전체')
+
+// Expose icons for template bindings
+const icons = {
+  Compass,
+  Sparkles,
+  MapPin,
+  Navigation
+}
 
 /**
  * Unified Widget State
@@ -216,7 +224,7 @@ onMounted(async () => {
           :maxHeight="22"
           :persistent="true"
           title="주변 장소"
-          :icon="Compass"
+          :icon="icons.Compass"
         >
           <NearbyWidget :places="filteredPlaces" />
         </MapWidgetFrame>
@@ -230,7 +238,7 @@ onMounted(async () => {
           :midHeight="22"
           :maxHeight="42"
           title="AI 코스"
-          :icon="Sparkles"
+          :icon="icons.Sparkles"
         >
           <TripDashboard 
             @trip-update="handleTripUpdate" 
@@ -247,7 +255,7 @@ onMounted(async () => {
           :midHeight="20"
           :maxHeight="40"
           title="구역 상세 정보"
-          :icon="MapPin"
+          :icon="icons.MapPin"
         >
           <DistrictInfoWidget v-if="selectedDistrict" :district="selectedDistrict" />
         </MapWidgetFrame>
@@ -260,7 +268,7 @@ onMounted(async () => {
           :midHeight="22"
           :maxHeight="40"
           title="최근 길찾기"
-          :icon="Navigation"
+          :icon="icons.Navigation"
         >
           <DirectionsWidget :recentCourses="recentCourses" @selectCourse="tripStore.currentTrip = $event; activeWidget = 'nearby'" />
         </MapWidgetFrame>

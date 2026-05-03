@@ -12,6 +12,11 @@ export interface ApiError {
   details?: any;
 }
 
+export interface TripRequest {
+  prompt: string;
+  userContext?: any;
+}
+
 export interface TripResponse {
   title: string;
   summary: string;

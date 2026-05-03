@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import { Star, Share2, Download, Map, Sparkles, User } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 
+declare const naver: any
+
 const router = useRouter()
 const mapContainer = ref<HTMLElement | null>(null)
 let map: any = null
