@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import NaverMap from '../components/NaverMap.vue'
 import TripDashboard from '../components/TripDashboard.vue'
@@ -17,8 +17,11 @@ import type { Place } from '../api/tourApi'
 import type { District } from '../types/district'
 import type { TripResponse } from '../types/trip'
 
+import { useWidgetController } from '../composables/useWidget'
+
 const router = useRouter()
 const mapRef = ref<any>(null)
+const chatFrameRef = ref<any>(null) // Move up to use with controller
 const searchQuery = ref('')
 const districts = ref<District[]>([])
 const places = ref<Place[]>([])
@@ -26,6 +29,9 @@ const tripStore = useTripStore()
 const recentCourses = ref<TripResponse[]>([])
 const activeTab = ref('home')
 const activeCategory = ref('전체')
+
+// Widget Controllers
+const chatController = useWidgetController(chatFrameRef)
 
 // Expose icons for template bindings
 const icons = {
@@ -52,7 +58,7 @@ const isSearchFilterInitial = ref(false)
 const initialCoords = ref({ lat: 37.5665, lng: 126.9780 }) // Fixed Seoul City Hall
 
 // Refs for programmatic widget control
-const chatFrameRef = ref<any>(null)
+// chatFrameRef moved to top
 
 
 // Mapping labels to Tour API contentTypeId
@@ -122,13 +128,36 @@ const handleSearch = () => {
 
 const handleProcessingStart = () => {
   // Auto-expand when AI planning starts (preset or manual)
-  chatFrameRef.value?.snapTo('MAX')
+  chatController.snapTo('MAX')
 }
 
 const handlePlannerReset = () => {
-  // Clear both pending and confirmed courses via store
-  tripStore.resetPlanner()
-  chatFrameRef.value?.snapTo('MID')
+  // Use utility to clear and snap safely to MID (22rem)
+  chatController.actionAndSnap(() => tripStore.resetPlanner(), 'MID')
+}
+
+// Auto-snap to MID (18rem) when planning is finished to show the map results
+watch(() => tripStore.isProcessing, (isProcessing) => {
+  if (!isProcessing && tripStore.pendingTrip) {
+    chatController.snapTo('MID')
+    // Automatically switch to Directions tab when AI finishes
+    activeWidget.value = 'directions'
+  }
+})
+
+const handleHistorySelect = (course: TripResponse) => {
+  // Load the selected course back into the AI planner's result view
+  tripStore.pendingTrip = course
+  activeWidget.value = 'chat'
+  chatController.snapTo('MID')
+}
+
+const handleEditModeChange = (isEditing: boolean) => {
+  if (isEditing) {
+    chatController.snapTo('MAX')
+  } else {
+    chatController.snapTo('MID')
+  }
 }
 
 const handleAddToCourse = (place: Place) => {
@@ -252,7 +281,7 @@ onMounted(async () => {
         <NaverMap 
           ref="mapRef" 
           :districts="districts" 
-          :course="tripStore.currentTrip" 
+          :course="tripStore.currentTrip || tripStore.pendingTrip" 
           :places="filteredPlaces" 
           :initialLat="initialCoords.lat"
           :initialLng="initialCoords.lng"
@@ -292,8 +321,8 @@ onMounted(async () => {
           :show="activeWidget === 'chat'" 
           @close="activeWidget = 'nearby'"
           :minHeight="5"
-          :midHeight="22"
-          :maxHeight="42"
+          :midHeight="tripStore.pendingTrip ? 18 : 22"
+          :maxHeight="tripStore.isProcessing ? 32 : 42"
           title="AI 코스"
           :icon="icons.Sparkles"
         >
@@ -311,6 +340,7 @@ onMounted(async () => {
             @processing-start="handleProcessingStart"
             @reset="handlePlannerReset"
             @place-click="handlePlaceSelect"
+            @edit-mode-change="handleEditModeChange"
           />
         </MapWidgetFrame>
 
@@ -356,7 +386,7 @@ onMounted(async () => {
           title="최근 길찾기"
           :icon="icons.Navigation"
         >
-          <DirectionsWidget :recentCourses="recentCourses" @selectCourse="tripStore.currentTrip = $event; activeWidget = 'nearby'" />
+          <DirectionsWidget :recentCourses="recentCourses" @selectCourse="handleHistorySelect" />
         </MapWidgetFrame>
       </main>
 

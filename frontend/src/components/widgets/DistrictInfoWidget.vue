@@ -41,7 +41,7 @@ const residentPlaces = computed(() => {
 </script>
 
 <template>
-  <div class="px-6 py-4 flex flex-col gap-6">
+  <div class="p-6 flex flex-col gap-6">
     <!-- Header -->
     <div class="flex flex-col gap-1.5">
       <div class="flex items-center gap-2">

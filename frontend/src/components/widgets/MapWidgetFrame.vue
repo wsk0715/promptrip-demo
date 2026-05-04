@@ -131,7 +131,8 @@ onUnmounted(() => {
     <div 
       v-show="show" 
       ref="widgetRef"
-      class="absolute inset-x-0 bottom-0 z-[50] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-200 flex flex-col overflow-hidden text-slate-900 transition-all duration-300 ease-out"
+      class="absolute inset-x-0 bottom-0 z-[50] bg-white rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-200 flex flex-col overflow-hidden text-slate-900 will-change-[height]"
+      style="transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);"
       :class="{ 'transition-none': isDragging }"
       :style="{ height: `${currentHeight}rem` }"
     >
@@ -148,16 +149,16 @@ onUnmounted(() => {
       </div>
 
       <!-- Unified Header Area (Title & Icon) -->
-      <div v-if="title" class="px-7 py-2 shrink-0 flex items-center justify-between">
-        <div class="flex items-center gap-2">
+      <div v-if="title" class="px-6 py-3 shrink-0 flex items-center justify-between border-b border-slate-50">
+        <div class="flex items-center gap-2.5">
           <component :is="icon" v-if="icon" class="w-5 h-5 text-indigo-600" />
           <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ title }}</h4>
         </div>
         <slot name="header-action"></slot>
       </div>
 
-      <!-- Content Slot -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
+      <!-- Content Slot (Zero padding for full-bleed flexibility) -->
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
         <slot></slot>
       </div>
     </div>
