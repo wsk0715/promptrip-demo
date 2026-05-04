@@ -12,7 +12,7 @@ const props = defineProps<{
   initialLng: number
 }>()
 
-const emit = defineEmits(['map-move', 'district-click'])
+const emit = defineEmits(['map-move', 'district-click', 'place-click'])
 
 const mapContainer = ref<HTMLElement | null>(null)
 let map: any = null
@@ -58,50 +58,42 @@ const drawDistricts = () => {
   })
 }
 
+const getCategoryTheme = (typeId: string) => {
+  const themes: Record<string, { bg: string, text: string, dot: string }> = {
+    '12': { bg: 'bg-indigo-600', text: 'text-white', dot: 'bg-white' }, // 관광지
+    '39': { bg: 'bg-amber-500', text: 'text-white', dot: 'bg-white' },  // 음식점/카페
+    '32': { bg: 'bg-purple-600', text: 'text-white', dot: 'bg-white' }, // 숙박
+    'default': { bg: 'bg-white', text: 'text-slate-800', dot: 'bg-indigo-500' }
+  }
+  return themes[typeId] || themes.default
+}
+
 const drawPlaces = () => {
   if (!map || !props.places) return
   props.places.forEach(place => {
     const position = new naver.maps.LatLng(place.mapY, place.mapX)
+    const theme = getCategoryTheme(place.contentTypeId)
+    
     const marker = new naver.maps.Marker({
       position: position,
       map: map,
       title: place.title,
       icon: {
         content: `
-          <div class="relative group">
-            <div class="absolute -inset-2 bg-white/50 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <div class="relative bg-white p-1.5 rounded-full shadow-md border border-slate-200 text-indigo-600">
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-            </div>
+          <div class="flex items-center gap-1.5 ${theme.bg} ${theme.text} px-2.5 py-1.5 rounded-full shadow-xl border border-white/20 hover:scale-110 hover:z-[1000] transition-all cursor-pointer group active:scale-95">
+            <div class="w-1.5 h-1.5 ${theme.dot} rounded-full shadow-sm"></div>
+            <span class="text-[11px] font-semibold whitespace-nowrap tracking-tight">${place.title}</span>
           </div>
         `,
-        anchor: new naver.maps.Point(12, 12)
+        anchor: new naver.maps.Point(30, 15)
       }
     })
 
-    const infoWindow = new naver.maps.InfoWindow({
-      content: `
-        <div class="p-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white min-w-[200px] max-w-[250px]">
-          ${place.firstImage ? `<img src="${place.firstImage}" class="w-full h-24 object-cover rounded-xl mb-2" />` : ''}
-          <h4 class="font-bold text-slate-900 leading-tight text-sm">${place.title}</h4>
-          <p class="text-[10px] text-slate-500 mt-1">${place.addr1}</p>
-        </div>`,
-      borderWidth: 0,
-      backgroundColor: 'transparent',
-      disableAnchor: true,
-      pixelOffset: new naver.maps.Point(0, -10)
-    })
-
     naver.maps.Event.addListener(marker, 'click', () => {
-      infoWindows.value.forEach(iw => iw.close())
-      infoWindow.open(map, marker)
+      emit('place-click', place)
     })
 
     placeMarkers.value.push(marker)
-    infoWindows.value.push(infoWindow)
   })
 }
 
@@ -121,27 +113,33 @@ const drawCourse = () => {
           map: map,
           title: item.location,
           icon: {
-            content: `<div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 border-white shadow-lg text-xs">${index + 1}</div>`,
+            content: `
+              <div class="relative group cursor-pointer">
+                <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg text-[11px] group-hover:scale-110 group-hover:bg-indigo-700 transition-all">
+                  ${index + 1}
+                </div>
+                <!-- Sparkle Effect for AI Recommended Marker -->
+                <div class="absolute -top-1 -right-1">
+                  <div class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
+                </div>
+              </div>
+            `,
             anchor: new naver.maps.Point(16, 16)
-          }
+          },
+          zIndex: 200
         })
         markers.value.push(marker)
 
-        const infoWindow = new naver.maps.InfoWindow({
-          content: `<div class="p-3 bg-white rounded-xl shadow-xl border-0 min-w-[150px]">
-                      <h4 class="font-bold text-indigo-900 text-sm">${item.location}</h4>
-                      <p class="text-[10px] text-slate-500 mt-1">${item.time} - ${item.description}</p>
-                    </div>`,
-          borderWidth: 0,
-          backgroundColor: 'transparent',
-          disableAnchor: true,
-          pixelOffset: new naver.maps.Point(0, -10)
-        })
-        infoWindows.value.push(infoWindow)
-
+        // Only emit event, no info window on map
         naver.maps.Event.addListener(marker, 'click', () => {
-          infoWindows.value.forEach(iw => iw.close())
-          infoWindow.open(map, marker)
+          // We can emit a special event or a generic place-click if we adapt the data
+          emit('place-click', { 
+            title: item.location, 
+            addr1: item.description, // Fallback for address
+            mapX: item.lng, 
+            mapY: item.lat,
+            isAI: true // Flag to show sparkle in detail widget
+          })
         })
       }
     })
@@ -161,6 +159,31 @@ const drawCourse = () => {
     const bounds = new naver.maps.LatLngBounds(path[0], path[0])
     path.forEach(p => bounds.extend(p))
     map.panToBounds(bounds)
+
+    // Add distance/time labels between points
+    for (let i = 0; i < path.length - 1; i++) {
+      const p1 = path[i]
+      const p2 = path[i+1]
+      const midLat = (p1.lat() + p2.lat()) / 2
+      const midLng = (p1.lng() + p2.lng()) / 2
+      
+      const label = new naver.maps.Marker({
+        position: new naver.maps.LatLng(midLat, midLng),
+        map: map,
+        icon: {
+          content: `
+            <div class="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-indigo-100 shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+              <span class="text-[9px] font-bold text-indigo-600">도보 12분</span>
+              <div class="w-[1px] h-2 bg-slate-200"></div>
+              <span class="text-[9px] font-medium text-slate-500">850m</span>
+            </div>
+          `,
+          anchor: new naver.maps.Point(40, 10)
+        },
+        zIndex: 50
+      })
+      markers.value.push(label)
+    }
   }
 }
 
@@ -197,11 +220,13 @@ const updateUserLocation = (lat: number, lng: number) => {
   }
 }
 
-const setCenter = (lat: number, lng: number) => {
+const setCenter = (lat: number, lng: number, zoom?: number) => {
   if (!map) return
   const center = new naver.maps.LatLng(lat, lng)
-  map.setCenter(center)
-  map.setZoom(15)
+  map.panTo(center) // Smooth move
+  if (zoom !== undefined) {
+    map.setZoom(zoom)
+  }
   updateUserLocation(lat, lng)
 }
 

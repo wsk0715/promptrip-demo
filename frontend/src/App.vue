@@ -11,7 +11,7 @@ import { RouterView } from 'vue-router'
 <style>
 /* Global Reset for App Style */
 html {
-  font-size: 110%; /* Globally scale up all text sizes */
+  font-size: 100%; /* Reset to standard base */
 }
 body, html {
   margin: 0;
@@ -20,7 +20,6 @@ body, html {
   width: 100%;
   overflow: hidden;
   background-color: #f8fafc;
-  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
 #app {

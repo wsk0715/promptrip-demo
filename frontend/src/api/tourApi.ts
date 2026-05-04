@@ -12,6 +12,9 @@ export interface Place {
   tel: string;
   contentTypeId: string;
   dist?: number; // Distance in meters
+  rating?: number;
+  reviewCount?: number;
+  isOpen?: boolean;
 }
 
 /**
@@ -33,7 +36,10 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       mapY: 37.5658,
       tel: "02-771-9951",
       contentTypeId: "12",
-      dist: 150
+      dist: 150,
+      rating: 4.8,
+      reviewCount: 2450,
+      isOpen: true
     },
     {
       contentId: "p2",
@@ -46,7 +52,10 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       mapY: 37.5632,
       tel: "02-774-1784",
       contentTypeId: "12",
-      dist: 850
+      dist: 850,
+      rating: 4.7,
+      reviewCount: 1820,
+      isOpen: true
     },
     {
       contentId: "p3",
@@ -59,7 +68,10 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       mapY: 37.5662,
       tel: "02-773-9363",
       contentTypeId: "39",
-      dist: 1100
+      dist: 1100,
+      rating: 4.5,
+      reviewCount: 310,
+      isOpen: false
     },
     {
       contentId: "p4",
@@ -72,7 +84,10 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       mapY: 37.5592,
       tel: "02-753-2805",
       contentTypeId: "12",
-      dist: 900
+      dist: 900,
+      rating: 4.3,
+      reviewCount: 5600,
+      isOpen: true
     },
     {
       contentId: "p5",
@@ -85,7 +100,10 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       mapY: 37.5641,
       tel: "02-2124-8800",
       contentTypeId: "14",
-      dist: 450
+      dist: 450,
+      rating: 4.6,
+      reviewCount: 920,
+      isOpen: true
     }
   ];
 

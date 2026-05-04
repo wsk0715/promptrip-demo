@@ -6,8 +6,10 @@ import TripDashboard from '../components/TripDashboard.vue'
 import MapWidgetFrame from '../components/widgets/MapWidgetFrame.vue'
 import NearbyWidget from '../components/widgets/NearbyWidget.vue'
 import DistrictInfoWidget from '../components/widgets/DistrictInfoWidget.vue'
+import PlaceInfoWidget from '../components/widgets/PlaceInfoWidget.vue'
+import SearchOverlay from '../components/widgets/SearchOverlay.vue'
 import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
-import { Sparkles, Star, Search, Menu, Navigation, Map, User, Compass, MapPin } from 'lucide-vue-next'
+import { Sparkles, Star, Search, Navigation, Map, User, Compass, MapPin, SlidersHorizontal, Plane, RotateCcw } from 'lucide-vue-next'
 import { getRecommendedDistricts } from '../api/districtApi'
 import { getNearbyPlaces } from '../api/tourApi'
 import { useTripStore } from '../services/tripService'
@@ -30,23 +32,28 @@ const icons = {
   Compass,
   Sparkles,
   MapPin,
-  Navigation
+  Navigation,
+  SlidersHorizontal,
+  Plane,
+  Search
 }
 
 /**
  * Unified Widget State
  * Default is 'nearby'
  */
-const activeWidget = ref<'chat' | 'district' | 'directions' | 'nearby'>('nearby')
+const activeWidget = ref<'chat' | 'district' | 'directions' | 'nearby' | 'place' | 'filter' | 'searchHub'>('nearby')
 const selectedDistrict = ref<District | null>(null)
+const selectedPlace = ref<Place | null>(null)
 const isLocationReady = ref(false)
+const isMapMoved = ref(false)
+const currentMapCenter = ref({ lat: 37.5665, lng: 126.9780 })
+const isSearchFilterInitial = ref(false)
 const initialCoords = ref({ lat: 37.5665, lng: 126.9780 }) // Fixed Seoul City Hall
 
 // Refs for programmatic widget control
 const chatFrameRef = ref<any>(null)
 
-// Debounce timer for API calls
-let moveEndTimer: ReturnType<typeof setTimeout> | null = null
 
 // Mapping labels to Tour API contentTypeId
 const categoryMap: Record<string, string> = {
@@ -56,7 +63,7 @@ const categoryMap: Record<string, string> = {
   '🌲 조용한숲': '12', 
 }
 
-const toggleWidget = (type: 'chat' | 'directions' | 'nearby') => {
+const toggleWidget = (type: 'chat' | 'directions' | 'nearby' | 'filter' | 'searchHub' | 'district' | 'place') => {
   if (activeWidget.value === type) {
     // If closing current, go back to nearby
     activeWidget.value = 'nearby'
@@ -70,16 +77,24 @@ const handleDistrictSelect = (district: District) => {
   activeWidget.value = 'district'
 }
 
+const handlePlaceSelect = (place: Place) => {
+  selectedPlace.value = place
+  activeWidget.value = 'place'
+}
+
 const goToHistory = () => {
   activeTab.value = 'history'
   router.push('/history')
 }
 
 const handleMapMove = (center: { lat: number, lng: number }) => {
-  if (moveEndTimer) clearTimeout(moveEndTimer)
-  moveEndTimer = setTimeout(() => {
-    fetchNearby(center.lat, center.lng)
-  }, 800)
+  currentMapCenter.value = center
+  isMapMoved.value = true
+}
+
+const searchThisArea = () => {
+  fetchNearby(currentMapCenter.value.lat, currentMapCenter.value.lng)
+  isMapMoved.value = false
 }
 
 const selectCategory = (cat: string) => {
@@ -99,9 +114,10 @@ const goToCurrentLocation = () => {
 
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
-  activeWidget.value = 'chat'
-  // Auto-expand when manual search starts
-  setTimeout(() => chatFrameRef.value?.snapTo('MAX'), 100)
+  // Switch to nearby view to show search results instead of calling AI
+  activeWidget.value = 'nearby'
+  console.log(`General search triggered: ${searchQuery.value}`)
+  // Optional: Trigger a map focus or specific place filtering here
 }
 
 const handleProcessingStart = () => {
@@ -153,29 +169,57 @@ onMounted(async () => {
 <template>
   <div class="h-screen flex flex-col bg-white text-slate-900 font-sans overflow-hidden">
     <template v-if="isLocationReady">
-      <!-- ① Compact Header -->
-      <header class="shrink-0 z-[100] bg-white border-b border-slate-100 px-3 py-2.5 shadow-sm">
-        <div class="max-w-md mx-auto w-full">
-          <div class="bg-slate-50 rounded-2xl border border-slate-200 flex items-center p-0.5 group focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
-            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
-              <Menu class="w-5 h-5" />
-            </button>
-            <input 
-              v-model="searchQuery"
-              type="text" 
-              placeholder="어디로 떠나고 싶으신가요?"
-              class="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-bold px-1 text-[13px]"
-              @keydown.enter="handleSearch"
-            />
-            <button @click="handleSearch" class="p-2 bg-indigo-600 text-white rounded-xl shadow-md active:scale-95 transition-all">
-              <Search class="w-4 h-4" />
-            </button>
+      <!-- ① Refined Search Header -->
+      <header class="shrink-0 z-[100] bg-white border-b border-slate-100">
+        <div class="max-w-md mx-auto w-full px-4 py-3 flex items-center gap-3">
+          <!-- Left Icon (Plane) -->
+          <button class="p-2 -ml-2 text-indigo-600 active:scale-90 transition-all">
+            <Plane class="w-6 h-6 fill-indigo-50" />
+          </button>
+
+          <!-- Search Bar Trigger -->
+          <div 
+            class="flex-1 bg-slate-100 rounded-2xl flex items-center px-4 py-2 gap-3 hover:bg-slate-200/50 transition-all cursor-pointer group"
+            @click="activeWidget = 'searchHub'; isSearchFilterInitial = false"
+          >
+            <Search class="w-4 h-4 text-slate-400 group-hover:text-indigo-500" />
+            <span class="flex-1 text-slate-400 font-semibold text-sm">지역, 테마, 관광지 검색</span>
           </div>
+
+          <!-- Right Search Button -->
+          <button 
+            @click="activeWidget = 'searchHub'; isSearchFilterInitial = false"
+            class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100 active:scale-90 transition-all"
+          >
+            <Search class="w-5 h-5" />
+          </button>
         </div>
       </header>
 
+      <!-- Full-screen Search Overlay -->
+      <SearchOverlay 
+        v-model="searchQuery" 
+        :show="activeWidget === 'searchHub'" 
+        :initialFilter="isSearchFilterInitial"
+        @close="activeWidget = 'nearby'; isSearchFilterInitial = false"
+        @search="handleSearch"
+      />
+
       <!-- ② Main Content -->
       <main class="flex-1 relative overflow-hidden bg-slate-50">
+        <!-- Search this area floating button -->
+        <Transition name="slide-down">
+          <div v-if="isMapMoved" class="absolute top-16 left-0 right-0 z-[40] flex justify-center pointer-events-none">
+            <button 
+              @click="searchThisArea"
+              class="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-indigo-100 text-indigo-600 active:scale-95 transition-all"
+            >
+              <RotateCcw class="w-3.5 h-3.5" />
+              <span class="text-[11px] font-bold">현재 위치에서 검색</span>
+            </button>
+          </div>
+        </Transition>
+
         <!-- Compact Category Overlay -->
         <div class="absolute top-3 left-0 right-0 z-20 pointer-events-none">
           <div class="flex gap-1.5 overflow-x-auto no-scrollbar px-3 max-w-md mx-auto pointer-events-auto">
@@ -183,7 +227,7 @@ onMounted(async () => {
               v-for="cat in ['전체', '🛋️ 감성카페', '🌙 야경명소', '🌲 조용한숲']" 
               :key="cat" 
               @click="selectCategory(cat)"
-              class="shrink-0 px-3.5 py-1.5 rounded-full text-[10px] font-black shadow-lg transition-all whitespace-nowrap active:scale-95 border backdrop-blur-md"
+              class="shrink-0 px-3.5 py-1.5 rounded-full text-[10px] font-semibold shadow-lg transition-all whitespace-nowrap active:scale-95 border backdrop-blur-md"
               :class="activeCategory === cat 
                 ? 'bg-indigo-600 text-white border-transparent' 
                 : 'bg-white/90 border-white/50 text-slate-700'"
@@ -202,6 +246,7 @@ onMounted(async () => {
           :initialLng="initialCoords.lng"
           @map-move="handleMapMove"
           @district-click="handleDistrictSelect"
+          @place-click="handlePlaceSelect"
         />
 
         <!-- Side Buttons (Precisely positioned in rem) -->
@@ -251,13 +296,26 @@ onMounted(async () => {
         <MapWidgetFrame 
           :show="activeWidget === 'district' && !!selectedDistrict" 
           @close="activeWidget = 'nearby'"
-          :minHeight="10"
+          :minHeight="5"
           :midHeight="20"
           :maxHeight="40"
           title="구역 상세 정보"
           :icon="icons.MapPin"
         >
           <DistrictInfoWidget v-if="selectedDistrict" :district="selectedDistrict" />
+        </MapWidgetFrame>
+
+        <!-- 3.5 Place Info Overlay -->
+        <MapWidgetFrame 
+          :show="activeWidget === 'place' && !!selectedPlace" 
+          @close="activeWidget = 'nearby'"
+          :minHeight="5"
+          :midHeight="25"
+          :maxHeight="45"
+          title="장소 상세 정보"
+          :icon="icons.MapPin"
+        >
+          <PlaceInfoWidget v-if="selectedPlace" :place="selectedPlace" />
         </MapWidgetFrame>
 
         <!-- 4. Directions/Recent History Overlay -->
@@ -281,7 +339,7 @@ onMounted(async () => {
           <button @click="activeTab = 'home'; activeWidget = 'nearby'" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'home' && activeWidget === 'nearby' ? 'text-indigo-400' : 'text-slate-500'">
             <Map class="w-5 h-5" />
-            <span class="text-[9px] font-black uppercase tracking-tight">탐색</span>
+            <span class="text-[9px] font-medium uppercase tracking-tight">탐색</span>
           </button>
 
           <!-- 2. Directions -->
@@ -293,7 +351,7 @@ onMounted(async () => {
                 <Sparkles class="w-1.5 h-1.5 text-white" />
               </div>
             </div>
-            <span class="text-[9px] font-black uppercase tracking-tight">길찾기</span>
+            <span class="text-[9px] font-medium uppercase tracking-tight">길찾기</span>
           </button>
           
           <!-- 3. AI Course -->
@@ -303,20 +361,20 @@ onMounted(async () => {
               <Sparkles class="w-5 h-5" :class="{ 'animate-pulse': activeWidget === 'chat' }" />
               <div v-if="activeWidget !== 'chat'" class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></div>
             </div>
-            <span class="text-[9px] font-black uppercase tracking-tight">AI코스</span>
+            <span class="text-[9px] font-medium uppercase tracking-tight">AI코스</span>
           </button>
 
           <!-- 4. History -->
           <button @click="goToHistory" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'history' ? 'text-amber-400' : 'text-slate-500'">
             <Star class="w-5 h-5" />
-            <span class="text-[9px] font-black uppercase tracking-tight">기록</span>
+            <span class="text-[9px] font-medium uppercase tracking-tight">기록</span>
           </button>
 
           <!-- 5. My -->
           <button class="flex-1 flex flex-col items-center gap-1 text-slate-500">
             <User class="w-5 h-5" />
-            <span class="text-[9px] font-black uppercase tracking-tight">My</span>
+            <span class="text-[9px] font-medium uppercase tracking-tight">My</span>
           </button>
         </div>
       </footer>
@@ -325,6 +383,13 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
 .slide-up-enter-active, .slide-up-leave-active {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
 }

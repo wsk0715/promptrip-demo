@@ -1,9 +1,22 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+import { Image as ImageIcon } from 'lucide-vue-next'
 import type { Place } from '../../api/tourApi'
 
 const props = defineProps<{
   places: Place[]
 }>()
+
+const imageErrors = ref<Record<string, boolean>>({})
+
+const handleImageError = (id: string) => {
+  imageErrors.value[id] = true
+}
+
+// Reset errors if places change significantly (optional, but good for reactivity)
+watch(() => props.places, () => {
+  imageErrors.value = {}
+}, { deep: false })
 </script>
 
 <template>
@@ -14,10 +27,17 @@ const props = defineProps<{
         :key="place.contentId" 
         class="bg-white p-2.5 rounded-2xl border border-slate-100 flex gap-3 hover:border-indigo-100 transition-all active:scale-[0.98] shadow-sm"
       >
-        <img 
-          :src="place.firstImage || '/placeholder.png'" 
-          class="w-16 h-16 object-cover rounded-xl bg-slate-50" 
-        />
+        <div class="w-16 h-16 shrink-0 overflow-hidden rounded-xl bg-slate-50 relative">
+          <img 
+            v-if="place.firstImage && !imageErrors[place.contentId]"
+            :src="place.firstImage" 
+            @error="handleImageError(place.contentId)"
+            class="w-full h-full object-cover" 
+          />
+          <div v-else class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+            <ImageIcon class="w-5 h-5 text-slate-300" />
+          </div>
+        </div>
         <div class="flex-1 flex flex-col justify-center overflow-hidden">
           <h5 class="font-bold text-slate-900 text-[13px] leading-tight truncate">{{ place.title }}</h5>
           <p class="text-[10px] text-slate-500 mt-1 truncate font-medium">{{ place.addr1 }}</p>
