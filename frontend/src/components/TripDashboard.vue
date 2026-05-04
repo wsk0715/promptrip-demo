@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useTripStore } from '../services/tripService';
-import { Send, Loader2, Wand2, Coffee, Moon, Utensils, TreePine, MapPin, Clock, ArrowRight, Navigation } from 'lucide-vue-next';
+import { Send, Loader2, Wand2, Coffee, Moon, Utensils, TreePine, MapPin, Clock, ArrowRight, Navigation, SlidersHorizontal } from 'lucide-vue-next';
 
 const tripStore = useTripStore();
 
-const emit = defineEmits(['trip-update', 'processing-start', 'reset']);
+const emit = defineEmits(['trip-update', 'processing-start', 'reset', 'place-click']);
 
 const presets = [
   { id: 'random', label: '계획 없이 추천', icon: Wand2, query: '서울시청 주변으로 계획 없이 가볼만한 곳 추천해줘' },
@@ -80,56 +80,60 @@ const handlePresetClick = (query: string) => {
     </div>
 
     <!-- Result Section -->
-    <div v-if="tripStore.currentTrip?.plans && !tripStore.isProcessing" class="animate-in fade-in zoom-in-95 duration-500 pb-4">
+    <div v-if="tripStore.pendingTrip && !tripStore.isProcessing" class="animate-in fade-in zoom-in-95 duration-500 pb-4">
       <div class="px-2 mb-6">
         <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-          🎯 {{ tripStore.currentTrip.title }}
+          🎯 {{ tripStore.pendingTrip.title }}
         </h3>
         <p class="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
-          {{ tripStore.currentTrip.summary }}
+          {{ tripStore.pendingTrip.summary }}
         </p>
         <div class="flex items-center gap-2 mt-4">
           <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full border border-indigo-100 uppercase tracking-tighter">
-            Estimated {{ tripStore.currentTrip.totalDuration }}
+            Estimated {{ tripStore.pendingTrip.totalDuration }}
           </span>
         </div>
       </div>
 
       <div class="space-y-6">
-        <div v-for="day in tripStore.currentTrip.plans" :key="day.day" class="space-y-4">
+        <div v-for="day in tripStore.pendingTrip.plans" :key="day.day" class="space-y-4">
           <div class="flex items-center gap-3 px-2">
             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Day {{ day.day }}</span>
             <div class="h-px flex-1 bg-slate-100"></div>
           </div>
           
           <div class="space-y-4 relative ml-3 border-l-2 border-slate-100 pl-7 py-1">
-            <div v-for="(item, idx) in day.items" :key="idx" class="relative group">
+            <div 
+              v-for="(item, idx) in day.items" :key="idx" 
+              class="relative group cursor-pointer"
+              @click="emit('place-click', item)"
+            >
               <div class="absolute -left-[39px] top-0 w-6 h-6 rounded-full bg-white border-2 border-indigo-600 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 {{ idx + 1 }}
               </div>
               
               <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all">
                 <div class="flex justify-between items-start mb-2">
-                  <h4 class="font-black text-slate-900 text-base">{{ item.location }}</h4>
-                  <span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-lg">{{ item.time }}</span>
+                  <h4 class="font-black text-slate-900 text-base">{{ item.title }}</h4>
+                  <span v-if="item.aiMetadata?.time" class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-lg">{{ item.aiMetadata.time }}</span>
                 </div>
                 
-                <p class="text-xs font-semibold text-slate-500 leading-snug mb-3">{{ item.description }}</p>
+                <p class="text-xs font-semibold text-slate-500 leading-snug mb-3">{{ item.addr1 }}</p>
                 
-                <div class="bg-slate-50 rounded-xl p-3 border border-slate-100/50 mb-3">
+                <div v-if="item.aiMetadata?.reason" class="bg-slate-50 rounded-xl p-3 border border-slate-100/50 mb-3">
                   <p class="text-[11px] font-bold text-slate-600 leading-tight">
-                    <span class="text-indigo-600">✨ 추천 이유:</span> {{ item.reason }}
+                    <span class="text-indigo-600">✨ 추천 이유:</span> {{ item.aiMetadata.reason }}
                   </p>
                 </div>
 
                 <div class="flex items-center gap-4">
-                  <div class="flex items-center gap-1.5 text-slate-400">
+                  <div v-if="item.aiMetadata?.avgStay" class="flex items-center gap-1.5 text-slate-400">
                     <Clock class="w-3.5 h-3.5" />
-                    <span class="text-[10px] font-bold">{{ item.avgStay }} 체류</span>
+                    <span class="text-[10px] font-bold">{{ item.aiMetadata.avgStay }} 체류</span>
                   </div>
-                  <div v-if="item.travelTimeNext" class="flex items-center gap-1.5 text-indigo-400">
+                  <div v-if="item.aiMetadata?.travelTimeNext" class="flex items-center gap-1.5 text-indigo-400">
                     <ArrowRight class="w-3.5 h-3.5" />
-                    <span class="text-[10px] font-bold">{{ item.travelTimeNext }} 이동</span>
+                    <span class="text-[10px] font-bold">{{ item.aiMetadata.travelTimeNext }} 이동</span>
                   </div>
                 </div>
               </div>
@@ -141,13 +145,14 @@ const handlePresetClick = (query: string) => {
       <!-- Action Buttons -->
       <div class="grid grid-cols-2 gap-3 mt-8 px-2">
         <button 
-          @click="emit('reset')"
-          class="py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black hover:bg-slate-200 transition-colors"
+          @click="console.log('Edit course triggered')"
+          class="py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
         >
-          다시 추천받기
+          <SlidersHorizontal class="w-4 h-4" />
+          경로 수정하기
         </button>
         <button 
-          @click="emit('trip-update', tripStore.currentTrip)"
+          @click="tripStore.confirmTrip(); emit('trip-update', tripStore.currentTrip)"
           class="py-4 bg-indigo-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
         >
           <Navigation class="w-4 h-4 fill-white" />

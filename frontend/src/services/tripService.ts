@@ -3,7 +3,8 @@ import { ref } from 'vue';
 import type { TripResponse } from '../types/trip';
 
 export const useTripStore = defineStore('trip', () => {
-  const currentTrip = ref<TripResponse | null>(null);
+  const currentTrip = ref<TripResponse | null>(null); // Confirmed/Active trip on map
+  const pendingTrip = ref<TripResponse | null>(null); // Proposed AI trip
   const logs = ref<string[]>([]);
   const isProcessing = ref(false);
   const error = ref<string | null>(null);
@@ -14,6 +15,7 @@ export const useTripStore = defineStore('trip', () => {
     isProcessing.value = true;
     logs.value = [];
     currentTrip.value = null;
+    pendingTrip.value = null;
 
     const steps = [
       "사용자 취향 분석 중...",
@@ -28,7 +30,7 @@ export const useTripStore = defineStore('trip', () => {
       logs.value.push(step);
     }
 
-    currentTrip.value = {
+    pendingTrip.value = {
       title: "덕수궁-을지로 힐링 산책 코스",
       summary: "인파를 피해 여유로운 돌담길을 걷고, 을지로의 빈티지한 감성을 즐기는 완벽한 반나절 코스입니다.",
       totalDuration: "약 4시간",
@@ -37,33 +39,48 @@ export const useTripStore = defineStore('trip', () => {
           day: 1,
           items: [
             {
-              location: "덕수궁 돌담길",
-              lat: 37.5658,
-              lng: 126.9751,
-              time: "14:00",
-              description: "고즈넉한 돌담길을 따라 걷는 여유로운 산책",
-              reason: "현재 혼잡도가 매우 낮아 조용한 힐링에 최적입니다.",
-              avgStay: "40분",
-              travelTimeNext: "도보 10분"
+              contentId: "ai_1",
+              contentTypeId: "12",
+              title: "덕수궁 돌담길",
+              addr1: "서울특별시 중구 세종대로 99",
+              mapX: 126.9751,
+              mapY: 37.5658,
+              firstImage: "https://images.unsplash.com/photo-1578912995000-601c0f065366?auto=format&fit=crop&q=80&w=800",
+              aiMetadata: {
+                time: "14:00",
+                reason: "현재 혼잡도가 매우 낮아 조용한 힐링에 최적입니다.",
+                avgStay: "40분",
+                travelTimeNext: "도보 10분"
+              }
             },
             {
-              location: "명동 로컬 맛집",
-              lat: 37.5635,
-              lng: 126.9842,
-              time: "15:00",
-              description: "숨겨진 로컬 맛집에서의 늦은 점심",
-              reason: "유명 관광 식당보다 평점이 높고 대기가 적은 현지인 추천 장소입니다.",
-              avgStay: "1시간",
-              travelTimeNext: "도보 15분"
+              contentId: "ai_2",
+              contentTypeId: "39",
+              title: "명동 로컬 맛집",
+              addr1: "서울특별시 중구 명동길",
+              mapX: 126.9842,
+              mapY: 37.5635,
+              firstImage: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&q=80&w=800",
+              aiMetadata: {
+                time: "15:00",
+                reason: "유명 관광 식당보다 평점이 높고 대기가 적은 현지인 추천 장소입니다.",
+                avgStay: "1시간",
+                travelTimeNext: "도보 15분"
+              }
             },
             {
-              location: "을지로 빈티지 카페",
-              lat: 37.5661,
-              lng: 126.9910,
-              time: "16:30",
-              description: "빈티지한 인테리어와 핸드드립 커피",
-              reason: "사용자님의 커피 취향에 맞는 조용한 다락방 스타일의 카페입니다.",
-              avgStay: "1시간 30분"
+              contentId: "ai_3",
+              contentTypeId: "39",
+              title: "을지로 빈티지 카페",
+              addr1: "서울특별시 중구 을지로",
+              mapX: 126.9910,
+              mapY: 37.5661,
+              firstImage: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800",
+              aiMetadata: {
+                time: "16:30",
+                reason: "사용자님의 커피 취향에 맞는 조용한 다락방 스타일의 카페입니다.",
+                avgStay: "1시간 30분"
+              }
             }
           ]
         }
@@ -73,8 +90,15 @@ export const useTripStore = defineStore('trip', () => {
     isProcessing.value = false;
   };
 
+  const confirmTrip = () => {
+    if (pendingTrip.value) {
+      currentTrip.value = { ...pendingTrip.value };
+    }
+  };
+
   const resetPlanner = () => {
     currentTrip.value = null;
+    pendingTrip.value = null;
     logs.value = [];
     isProcessing.value = false;
     error.value = null;
@@ -83,11 +107,13 @@ export const useTripStore = defineStore('trip', () => {
 
   return {
     currentTrip,
+    pendingTrip,
     logs,
     isProcessing,
     error,
     prompt,
     startPlanning,
+    confirmTrip,
     resetPlanner
   };
 });

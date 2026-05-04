@@ -126,18 +126,24 @@ const handleProcessingStart = () => {
 }
 
 const handlePlannerReset = () => {
-  // Clear course and shrink back to initial chat state
+  // Clear both pending and confirmed courses via store
   tripStore.resetPlanner()
   chatFrameRef.value?.snapTo('MID')
 }
 
 const handleTripUpdate = (course: TripResponse) => {
-  tripStore.currentTrip = course
-  if (!recentCourses.value.find(c => c.title === course.title)) {
+  // This is called when "Start Navigation" is clicked
+  // Store already has the course in currentTrip, we just handle UI transition and history
+  if (course && !recentCourses.value.find(c => c.title === course.title)) {
     recentCourses.value.unshift(course)
     if (recentCourses.value.length > 5) recentCourses.value.pop()
   }
+  
+  // Close AI dashboard and show the map with the confirmed course
   activeWidget.value = 'nearby'
+  
+  // Optional: Auto-focus the map on the new course bounds
+  console.log('Navigation started with course:', course.title)
 }
 
 const fetchNearby = async (lat: number, lng: number) => {
@@ -285,10 +291,20 @@ onMounted(async () => {
           title="AI 코스"
           :icon="icons.Sparkles"
         >
+          <template #header-action>
+            <button 
+              @click="handlePlannerReset"
+              class="p-2 text-slate-400 hover:text-indigo-600 transition-colors mr-2 active:rotate-180 duration-500"
+              title="전체 초기화"
+            >
+              <RotateCcw class="w-5 h-5" />
+            </button>
+          </template>
           <TripDashboard 
             @trip-update="handleTripUpdate" 
             @processing-start="handleProcessingStart"
             @reset="handlePlannerReset"
+            @place-click="handlePlaceSelect"
           />
         </MapWidgetFrame>
 

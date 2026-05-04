@@ -49,7 +49,6 @@ const emit = defineEmits(['selectCourse'])
       <!-- Empty State -->
       <div v-if="recentCourses.length === 0" class="py-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
         <p class="text-slate-400 text-xs font-medium">최근 추천받은 코스가 없습니다.</p>
-        <p class="text-[10px] text-slate-300 mt-1 uppercase font-black">Ask AI to plan your trip first</p>
       </div>
     </div>
   </div>

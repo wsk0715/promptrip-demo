@@ -1,10 +1,9 @@
+<script setup lang="ts">
 import { MapPin, Phone, Share2, Plus, Star, Image as ImageIcon, Sparkles } from 'lucide-vue-next'
-import type { Place } from '../../api/tourApi'
 import { ref, watch } from 'vue'
 
 const props = defineProps<{
-  place: Place
-  isAIRecommended?: boolean
+  place: any // Using any for flexibility or create a common type
 }>()
 
 const emit = defineEmits(['addToCourse'])
@@ -38,8 +37,8 @@ watch(() => props.place, () => {
         </div>
       </div>
 
-      <!-- AI Recommended Badge -->
-      <div v-if="isAIRecommended" class="absolute top-4 left-6 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-600/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 animate-in fade-in zoom-in duration-500">
+      <!-- AI Recommended Badge (Based on normalized metadata) -->
+      <div v-if="place.aiMetadata" class="absolute top-4 left-6 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-600/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 animate-in fade-in zoom-in duration-500">
         <div class="relative">
           <Sparkles class="w-3.5 h-3.5 text-white" />
           <div class="absolute -top-0.5 -right-0.5 w-1 h-1 bg-white rounded-full animate-ping"></div>
@@ -52,7 +51,7 @@ watch(() => props.place, () => {
         <div class="flex flex-col">
           <h3 class="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
             {{ place.title }}
-            <Sparkles v-if="isAIRecommended" class="w-4 h-4 text-indigo-400 fill-indigo-400" />
+            <Sparkles v-if="place.aiMetadata" class="w-4 h-4 text-indigo-400 fill-indigo-400" />
           </h3>
           <div class="flex items-center gap-2 mt-1.5">
             <div v-if="place.isOpen !== undefined" 
@@ -76,6 +75,13 @@ watch(() => props.place, () => {
 
     <!-- Content -->
     <div class="px-6 py-6 flex flex-col gap-5">
+      <!-- AI Reason Card (If available) -->
+      <div v-if="place.aiMetadata" class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100/50 -mt-2">
+        <p class="text-xs font-bold text-slate-700 leading-relaxed">
+          <span class="text-indigo-600">✨ AI 추천 포인트:</span> {{ place.aiMetadata.reason }}
+        </p>
+      </div>
+
       <!-- Location & Tel -->
       <div class="flex flex-col gap-3">
         <div class="flex items-start gap-3">

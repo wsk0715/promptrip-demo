@@ -148,9 +148,12 @@ onUnmounted(() => {
       </div>
 
       <!-- Unified Header Area (Title & Icon) -->
-      <div v-if="title" class="px-7 py-2 shrink-0 flex items-center gap-2">
-        <component :is="icon" v-if="icon" class="w-5 h-5 text-indigo-600" />
-        <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ title }}</h4>
+      <div v-if="title" class="px-7 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <component :is="icon" v-if="icon" class="w-5 h-5 text-indigo-600" />
+          <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ title }}</h4>
+        </div>
+        <slot name="header-action"></slot>
       </div>
 
       <!-- Content Slot -->

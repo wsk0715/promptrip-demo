@@ -4,12 +4,12 @@ export interface Place {
   contentId: string;
   title: string;
   addr1: string;
-  addr2: string;
-  firstImage: string;
-  firstImage2: string;
+  addr2?: string;
+  firstImage?: string;
+  firstImage2?: string;
   mapX: number;
   mapY: number;
-  tel: string;
+  tel?: string;
   contentTypeId: string;
   dist?: number; // Distance in meters
   rating?: number;

@@ -104,14 +104,14 @@ const drawCourse = () => {
   
   props.course.plans.forEach(plan => {
     plan.items.forEach((item, index) => {
-      if (item.lat && item.lng) {
-        const position = new naver.maps.LatLng(item.lat, item.lng)
+      if (item.mapY && item.mapX) {
+        const position = new naver.maps.LatLng(item.mapY, item.mapX)
         path.push(position)
 
         const marker = new naver.maps.Marker({
           position: position,
           map: map,
-          title: item.location,
+          title: item.title,
           icon: {
             content: `
               <div class="relative group cursor-pointer">
@@ -119,9 +119,10 @@ const drawCourse = () => {
                   ${index + 1}
                 </div>
                 <!-- Sparkle Effect for AI Recommended Marker -->
+                ${item.aiMetadata ? `
                 <div class="absolute -top-1 -right-1">
                   <div class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
-                </div>
+                </div>` : ''}
               </div>
             `,
             anchor: new naver.maps.Point(16, 16)
@@ -130,16 +131,9 @@ const drawCourse = () => {
         })
         markers.value.push(marker)
 
-        // Only emit event, no info window on map
+        // Directly emit the normalized item on click
         naver.maps.Event.addListener(marker, 'click', () => {
-          // We can emit a special event or a generic place-click if we adapt the data
-          emit('place-click', { 
-            title: item.location, 
-            addr1: item.description, // Fallback for address
-            mapX: item.lng, 
-            mapY: item.lat,
-            isAI: true // Flag to show sparkle in detail widget
-          })
+          emit('place-click', item)
         })
       }
     })
@@ -253,7 +247,7 @@ onMounted(() => {
     scaleControl: false,
     logoControl: true,
     logoControlOptions: {
-      position: naver.maps.Position.TOP_RIGHT
+      position: naver.maps.Position.RIGHT_TOP,
     },
     mapDataControl: false
   }

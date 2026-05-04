@@ -1,3 +1,5 @@
+import type { Place } from '../api/tourApi';
+
 export interface ApiResult<T> {
   success: boolean;
   timestamp: string;
@@ -29,13 +31,15 @@ export interface DayPlan {
   items: TripItem[];
 }
 
-export interface TripItem {
-  location: string;
-  lat: number;
-  lng: number;
-  time: string;
-  description: string;
-  reason: string;      // AI의 추천 이유
-  avgStay: string;     // 예상 체류 시간
-  travelTimeNext?: string; // 다음 장소까지 이동 시간
+/**
+ * Normalized Trip Item
+ * Combines standard Place data with AI-specific context
+ */
+export interface TripItem extends Place {
+  aiMetadata?: {
+    time: string;         // 방문 예정 시간 (예: "14:00")
+    reason: string;       // AI의 추천 이유
+    avgStay: string;      // 예상 체류 시간
+    travelTimeNext?: string; // 다음 장소까지 이동 시간
+  };
 }
