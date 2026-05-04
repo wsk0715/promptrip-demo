@@ -2,14 +2,104 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { TripResponse } from '../types/trip';
 import type { Place } from '../api/tourApi';
+import { historyApi } from '../api/historyApi';
+
+export interface VisitRecord {
+  tripId: string;
+  placeId: string;
+  timestamp: string;
+  rating: number;
+  emotion: string;
+  comment: string;
+  photo?: string;
+}
+
+export interface HistoryTrip extends TripResponse {
+  id: string;
+  completedAt: string;
+  visits: VisitRecord[];
+}
+
+export interface CommunityTrip extends TripResponse {
+  id: string;
+  authorName: string;
+  authorImage: string;
+  likes: number;
+  tags: string[];
+  visits?: { title: string; emotion: string }[];
+}
 
 export const useTripStore = defineStore('trip', () => {
-  const currentTrip = ref<TripResponse | null>(null); // Confirmed/Active trip on map
-  const pendingTrip = ref<TripResponse | null>(null); // Proposed AI trip
+  const currentTrip = ref<HistoryTrip | null>(null); // Active trip with visit tracking
+  const pendingTrip = ref<TripResponse | null>(null);
   const logs = ref<string[]>([]);
   const isProcessing = ref(false);
   const error = ref<string | null>(null);
   const prompt = ref('');
+  const recentTrips = ref<TripResponse[]>([]);
+  const historyTrips = ref<HistoryTrip[]>([]);
+  const visitedPlaces = ref<VisitRecord[]>([]);
+
+  const communityTrips = ref<CommunityTrip[]>([]);
+
+  /**
+   * Fetch community trips from API
+   */
+  const fetchCommunityTrips = async () => {
+    try {
+      const data = await historyApi.getCommunityTrips();
+      communityTrips.value = data;
+    } catch (e) {
+      error.value = "커뮤니티 여정을 불러오는데 실패했습니다.";
+    }
+  };
+
+  /**
+   * Import a trip from community to my pending plan
+   */
+  const importCommunityTrip = (trip: CommunityTrip) => {
+    // Clone the community trip structure to my pending plan
+    pendingTrip.value = {
+      title: `${trip.title} (복사됨)`,
+      summary: trip.summary,
+      totalDuration: trip.totalDuration,
+      plans: JSON.parse(JSON.stringify(trip.plans)) // Deep clone to avoid mutations
+    };
+    
+    // Auto-add to recent list
+    addToRecent(pendingTrip.value);
+  };
+
+  /**
+   * Share current completed trip to community
+   */
+  const shareTripToCommunity = async (trip: HistoryTrip) => {
+    isProcessing.value = true;
+    try {
+      const success = await historyApi.shareTrip(trip);
+      if (success) {
+        console.log('Successfully shared trip');
+      }
+    } catch (e) {
+      error.value = "여정 공유에 실패했습니다.";
+    } finally {
+      isProcessing.value = false;
+    }
+  };
+
+  const addToRecent = (trip: TripResponse) => {
+    // Prevent duplicate titles in recent list
+    const exists = recentTrips.value.findIndex(t => t.title === trip.title);
+    if (exists !== -1) {
+      recentTrips.value.splice(exists, 1);
+    }
+    
+    // Add to front and limit to 5 items
+    recentTrips.value.unshift({ ...trip });
+    if (recentTrips.value.length > 5) {
+      recentTrips.value.pop();
+    }
+  };
 
   const startPlanning = async (query: string) => {
     prompt.value = query;
@@ -32,7 +122,7 @@ export const useTripStore = defineStore('trip', () => {
     }
 
     pendingTrip.value = {
-      title: "덕수궁-을지로 힐링 산책 코스",
+      title: query.length > 10 ? `${query.substring(0, 10)}... 코스` : `${query} 코스`,
       summary: "인파를 피해 여유로운 돌담길을 걷고, 을지로의 빈티지한 감성을 즐기는 완벽한 반나절 코스입니다.",
       totalDuration: "약 4시간",
       plans: [
@@ -88,13 +178,48 @@ export const useTripStore = defineStore('trip', () => {
       ]
     };
 
+    if (pendingTrip.value) {
+      addToRecent(pendingTrip.value);
+    }
     isProcessing.value = false;
   };
 
   const confirmTrip = () => {
     if (pendingTrip.value) {
-      currentTrip.value = { ...pendingTrip.value };
+      currentTrip.value = { 
+        ...pendingTrip.value,
+        id: `trip_${Date.now()}`,
+        completedAt: '',
+        visits: []
+      };
     }
+  };
+
+  const recordVisit = (visit: Omit<VisitRecord, 'timestamp' | 'tripId'>) => {
+    if (!currentTrip.value) return;
+    
+    const newRecord: VisitRecord = {
+      ...visit,
+      tripId: currentTrip.value.id,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add to current trip's visits
+    currentTrip.value.visits.push(newRecord);
+    
+    // Add to global visited list
+    visitedPlaces.value.push(newRecord);
+    
+    // If all places visited, complete the trip
+    const allPlaces = currentTrip.value.plans.flatMap(p => p.items);
+    if (currentTrip.value.visits.length === allPlaces.length) {
+      currentTrip.value.completedAt = new Date().toISOString();
+      historyTrips.value.unshift({ ...currentTrip.value });
+    }
+  };
+
+  const isPlaceVisited = (placeId: string) => {
+    return currentTrip.value?.visits.some(v => v.placeId === placeId) || false;
   };
 
   const removeItemFromPending = (index: number) => {
@@ -141,10 +266,20 @@ export const useTripStore = defineStore('trip', () => {
     isProcessing,
     error,
     prompt,
+    recentTrips,
+    historyTrips,
+    communityTrips,
+    visitedPlaces,
     startPlanning,
+    addToRecent,
     confirmTrip,
+    recordVisit,
+    isPlaceVisited,
     removeItemFromPending,
     addPlaceToPending,
-    resetPlanner
+    resetPlanner,
+    fetchCommunityTrips,
+    importCommunityTrip,
+    shareTripToCommunity
   };
 });

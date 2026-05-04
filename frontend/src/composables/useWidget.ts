@@ -24,8 +24,16 @@ export function useWidgetController(widgetRef: Ref<any>) {
     await snapTo(level)
   }
 
+  /**
+   * Gets the current level from the widget
+   */
+  const getCurrentLevel = (): 'MIN' | 'MID' | 'MAX' => {
+    return widgetRef.value?.getCurrentLevel?.() || 'MIN'
+  }
+
   return {
     snapTo,
-    actionAndSnap
+    actionAndSnap,
+    getCurrentLevel
   }
 }

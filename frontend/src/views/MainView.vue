@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import NaverMap from '../components/NaverMap.vue'
-import TripDashboard from '../components/TripDashboard.vue'
+import AiCourseGenerator from '../components/widgets/AiCourseGenerator.vue'
+import RouteDetailView from '../components/widgets/RouteDetailView.vue'
 import MapWidgetFrame from '../components/widgets/MapWidgetFrame.vue'
 import NearbyWidget from '../components/widgets/NearbyWidget.vue'
 import DistrictInfoWidget from '../components/widgets/DistrictInfoWidget.vue'
 import PlaceInfoWidget from '../components/widgets/PlaceInfoWidget.vue'
 import SearchOverlay from '../components/widgets/SearchOverlay.vue'
 import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
-import { Sparkles, Star, Search, Navigation, Map, User, Compass, MapPin, SlidersHorizontal, Plane, RotateCcw } from 'lucide-vue-next'
+import HistoryWidget from '../components/widgets/HistoryWidget.vue'
+import VisitAuthModal from '../components/widgets/VisitAuthModal.vue'
+import MyPageWidget from '../components/widgets/MyPageWidget.vue'
+import { Sparkles, Star, Search, Navigation, Map, User, Compass, MapPin, Plane, RotateCcw } from 'lucide-vue-next'
 import { getRecommendedDistricts } from '../api/districtApi'
 import { getNearbyPlaces } from '../api/tourApi'
 import { useTripStore } from '../services/tripService'
@@ -19,19 +22,25 @@ import type { TripResponse } from '../types/trip'
 
 import { useWidgetController } from '../composables/useWidget'
 
-const router = useRouter()
 const mapRef = ref<any>(null)
-const chatFrameRef = ref<any>(null) // Move up to use with controller
+const chatFrameRef = ref<any>(null) 
+const routeFrameRef = ref<any>(null)
+const nearbyFrameRef = ref<any>(null)
+const historyFrameRef = ref<any>(null)
+const myFrameRef = ref<any>(null)
 const searchQuery = ref('')
 const districts = ref<District[]>([])
 const places = ref<Place[]>([])
 const tripStore = useTripStore()
-const recentCourses = ref<TripResponse[]>([])
 const activeTab = ref('home')
 const activeCategory = ref('전체')
 
 // Widget Controllers
 const chatController = useWidgetController(chatFrameRef)
+const routeController = useWidgetController(routeFrameRef)
+const nearbyController = useWidgetController(nearbyFrameRef)
+const historyController = useWidgetController(historyFrameRef)
+const myController = useWidgetController(myFrameRef)
 
 // Expose icons for template bindings
 const icons = {
@@ -39,16 +48,17 @@ const icons = {
   Sparkles,
   MapPin,
   Navigation,
-  SlidersHorizontal,
   Plane,
-  Search
+  Search,
+  Star,
+  User
 }
 
 /**
  * Unified Widget State
  * Default is 'nearby'
  */
-const activeWidget = ref<'chat' | 'district' | 'directions' | 'nearby' | 'place' | 'filter' | 'searchHub'>('nearby')
+const activeWidget = ref<'chat' | 'route' | 'district' | 'directions' | 'nearby' | 'place' | 'filter' | 'searchHub' | 'history' | 'my'>('nearby')
 const selectedDistrict = ref<District | null>(null)
 const selectedPlace = ref<Place | null>(null)
 const isLocationReady = ref(false)
@@ -56,10 +66,9 @@ const isMapMoved = ref(false)
 const currentMapCenter = ref({ lat: 37.5665, lng: 126.9780 })
 const isSearchFilterInitial = ref(false)
 const initialCoords = ref({ lat: 37.5665, lng: 126.9780 }) // Fixed Seoul City Hall
-
-// Refs for programmatic widget control
-// chatFrameRef moved to top
-
+const userLocation = ref({ lat: 37.5665, lng: 126.9780 })
+const showVisitAuth = ref(false)
+const nearPlace = ref<any>(null)
 
 // Mapping labels to Tour API contentTypeId
 const categoryMap: Record<string, string> = {
@@ -69,12 +78,59 @@ const categoryMap: Record<string, string> = {
   '🌲 조용한숲': '12', 
 }
 
-const toggleWidget = (type: 'chat' | 'directions' | 'nearby' | 'filter' | 'searchHub' | 'district' | 'place') => {
+const toggleWidget = (type: typeof activeWidget.value) => {
+  if (activeWidget.value === 'directions' && type !== 'directions' && !tripStore.currentTrip) {
+    tripStore.pendingTrip = null
+  }
+
   if (activeWidget.value === type) {
-    // If closing current, go back to nearby
+    // Toggle OFF: Close current and return to nearby MIN
+    if (type === 'directions' && !tripStore.currentTrip) {
+      tripStore.pendingTrip = null
+    }
     activeWidget.value = 'nearby'
+    activeTab.value = 'home'
+    nearbyController.snapTo('MIN')
   } else {
+    // Toggle ON: Switch to new widget
     activeWidget.value = type
+    
+    // Always reset nearby to MIN when moving away from it or starting another widget
+    if (type !== 'nearby') {
+      nearbyController.snapTo('MIN')
+    }
+
+    if (type === 'history') {
+      activeTab.value = 'history'
+      setTimeout(() => historyController.snapTo('MID'), 50)
+    } else if (type === 'my') {
+      activeTab.value = 'my'
+      setTimeout(() => myController.snapTo('MID'), 50)
+    } else {
+      activeTab.value = 'home'
+      if (type === 'nearby') {
+        nearbyController.snapTo('MIN')
+      }
+      if (type === 'chat') setTimeout(() => chatController.snapTo('MID'), 50)
+      if (type === 'directions') setTimeout(() => routeController.snapTo('MID'), 50)
+    }
+  }
+}
+
+const handleExploreClick = () => {
+  if (activeWidget.value !== 'nearby') {
+    activeWidget.value = 'nearby'
+    activeTab.value = 'home'
+    // Switch to nearby but keep it at MIN as requested
+    setTimeout(() => nearbyController.snapTo('MIN'), 50)
+  } else {
+    // Toggle height only if already in nearby
+    const current = nearbyController.getCurrentLevel()
+    if (current === 'MIN') {
+      nearbyController.snapTo('MAX')
+    } else {
+      nearbyController.snapTo('MIN')
+    }
   }
 }
 
@@ -88,10 +144,7 @@ const handlePlaceSelect = (place: Place) => {
   activeWidget.value = 'place'
 }
 
-const goToHistory = () => {
-  activeTab.value = 'history'
-  router.push('/history')
-}
+
 
 const handleMapMove = (center: { lat: number, lng: number }) => {
   currentMapCenter.value = center
@@ -108,9 +161,14 @@ const selectCategory = (cat: string) => {
 }
 
 const filteredPlaces = computed(() => {
-  const typeId = categoryMap[activeCategory.value]
-  if (!typeId) return places.value
-  return places.value.filter(p => p.contentTypeId === typeId)
+  // Hide nearby places when in directions mode or actively traveling to focus on the route
+  if (activeWidget.value === 'directions' || !!tripStore.currentTrip) {
+    return []
+  }
+  
+  if (activeCategory.value === '전체') return places.value
+  const catCode = categoryMap[activeCategory.value]
+  return places.value.filter(p => p.contentTypeId === catCode)
 })
 
 const goToCurrentLocation = () => {
@@ -120,64 +178,47 @@ const goToCurrentLocation = () => {
 
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
-  // Switch to nearby view to show search results instead of calling AI
   activeWidget.value = 'nearby'
   console.log(`General search triggered: ${searchQuery.value}`)
-  // Optional: Trigger a map focus or specific place filtering here
 }
 
 const handleProcessingStart = () => {
-  // Auto-expand when AI planning starts (preset or manual)
   chatController.snapTo('MAX')
 }
 
-const handlePlannerReset = () => {
-  // Use utility to clear and snap safely to MID (22rem)
-  chatController.actionAndSnap(() => tripStore.resetPlanner(), 'MID')
-}
-
-// Auto-snap to MID (18rem) when planning is finished to show the map results
+// Auto-switch to Directions Detail when planning is finished
 watch(() => tripStore.isProcessing, (isProcessing) => {
   if (!isProcessing && tripStore.pendingTrip) {
-    chatController.snapTo('MID')
-    // Automatically switch to Directions tab when AI finishes
     activeWidget.value = 'directions'
+    
+    tripStore.logs = []
+    tripStore.prompt = ''
+    
+    routeController.snapTo('MID')
   }
 })
 
 const handleHistorySelect = (course: TripResponse) => {
-  // Load the selected course back into the AI planner's result view
   tripStore.pendingTrip = course
-  activeWidget.value = 'chat'
-  chatController.snapTo('MID')
+  routeController.snapTo('MID')
 }
 
 const handleEditModeChange = (isEditing: boolean) => {
   if (isEditing) {
-    chatController.snapTo('MAX')
+    routeController.snapTo('MAX')
   } else {
-    chatController.snapTo('MID')
+    routeController.snapTo('MID')
   }
 }
 
 const handleAddToCourse = (place: Place) => {
   tripStore.addPlaceToPending(place)
   activeWidget.value = 'chat'
-  chatFrameRef.value?.snapTo('MAX')
+  chatController.snapTo('MAX')
 }
 
 const handleTripUpdate = (course: TripResponse) => {
-  // This is called when "Start Navigation" is clicked
-  // Store already has the course in currentTrip, we just handle UI transition and history
-  if (course && !recentCourses.value.find(c => c.title === course.title)) {
-    recentCourses.value.unshift(course)
-    if (recentCourses.value.length > 5) recentCourses.value.pop()
-  }
-  
-  // Close AI dashboard and show the map with the confirmed course
   activeWidget.value = 'nearby'
-  
-  // Optional: Auto-focus the map on the new course bounds
   console.log('Navigation started with course:', course.title)
 }
 
@@ -192,6 +233,48 @@ const fetchNearby = async (lat: number, lng: number) => {
   }
 }
 
+// Proximity Detection Logic
+const checkProximity = () => {
+  if (!tripStore.currentTrip) return
+
+  tripStore.currentTrip.plans.forEach(plan => {
+    plan.items.forEach(item => {
+      if (tripStore.isPlaceVisited(item.contentId)) return;
+
+      const dist = getDistance(userLocation.value.lat, userLocation.value.lng, item.mapY, item.mapX)
+      if (dist < 0.2) { 
+        nearPlace.value = item
+        showVisitAuth.value = true
+      }
+    })
+  })
+}
+
+const handleVisitSuccess = () => {
+  showVisitAuth.value = false
+  nearPlace.value = null
+}
+
+// Mock GPS Simulator
+const teleportTo = (lat: number, lng: number) => {
+  userLocation.value = { lat, lng }
+  mapRef.value?.setCenter(lat, lng)
+  checkProximity()
+}
+
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371 
+  const dLat = deg2rad(lat2 - lat1)
+  const dLon = deg2rad(lon2 - lon1)
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+const deg2rad = (deg: number) => deg * (Math.PI / 180)
+
 onMounted(async () => {
   try {
     const result = await getRecommendedDistricts()
@@ -200,6 +283,11 @@ onMounted(async () => {
     }
     isLocationReady.value = true
     fetchNearby(initialCoords.value.lat, initialCoords.value.lng)
+    
+    // Ensure nearby widget starts at MIN to keep map as main focus
+    setTimeout(() => {
+      nearbyController.snapTo('MIN')
+    }, 500)
   } catch (error) {
     console.error(error)
     isLocationReady.value = true
@@ -250,7 +338,7 @@ onMounted(async () => {
       <main class="flex-1 relative overflow-hidden bg-slate-50">
         <!-- Search this area floating button -->
         <Transition name="slide-down">
-          <div v-if="isMapMoved" class="absolute top-16 left-0 right-0 z-[40] flex justify-center pointer-events-none">
+          <div v-if="isMapMoved && activeWidget === 'nearby'" class="absolute top-16 left-0 right-0 z-[40] flex justify-center pointer-events-none">
             <button 
               @click="searchThisArea"
               class="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-indigo-100 text-indigo-600 active:scale-95 transition-all"
@@ -281,8 +369,9 @@ onMounted(async () => {
         <NaverMap 
           ref="mapRef" 
           :districts="districts" 
-          :course="tripStore.currentTrip || tripStore.pendingTrip" 
+          :course="(activeWidget === 'directions' && tripStore.pendingTrip) || tripStore.currentTrip" 
           :places="filteredPlaces" 
+          :visits="tripStore.currentTrip?.visits || []"
           :initialLat="initialCoords.lat"
           :initialLng="initialCoords.lng"
           @map-move="handleMapMove"
@@ -290,7 +379,7 @@ onMounted(async () => {
           @place-click="handlePlaceSelect"
         />
 
-        <!-- Side Buttons (Precisely positioned in rem) -->
+        <!-- Side Buttons -->
         <div class="absolute right-4 bottom-[6.5rem] z-30 flex flex-col gap-3">
           <button 
             @click="goToCurrentLocation"
@@ -298,16 +387,31 @@ onMounted(async () => {
           >
             <Navigation class="w-6 h-6 fill-indigo-50" />
           </button>
+
+          <!-- Mock GPS Simulator Trigger -->
+          <Transition name="fade">
+            <div v-if="tripStore.currentTrip" class="flex flex-col gap-2">
+              <button 
+                v-for="(item, idx) in tripStore.currentTrip.plans[0].items" :key="idx"
+                @click="teleportTo(item.mapY, item.mapX)"
+                class="w-10 h-10 bg-slate-900 text-white rounded-xl shadow-lg flex items-center justify-center active:scale-90 transition-all text-[10px] font-black"
+                :title="item.title"
+              >
+                {{ idx + 1 }}
+              </button>
+            </div>
+          </Transition>
         </div>
 
         <!-- Systematic Map Widgets (Contained in Main) -->
         
         <!-- 1. Nearby Widget (Default/Background) -->
         <MapWidgetFrame 
+          ref="nearbyFrameRef"
           :show="activeWidget === 'nearby'" 
           :minHeight="2.5" 
-          :midHeight="5" 
-          :maxHeight="22"
+          :midHeight="10" 
+          :maxHeight="24"
           :persistent="true"
           title="주변 장소"
           :icon="icons.Compass"
@@ -315,39 +419,24 @@ onMounted(async () => {
           <NearbyWidget :places="filteredPlaces" />
         </MapWidgetFrame>
 
-        <!-- 2. AI Chat Overlay -->
+        <!-- 2. AI Planner Widget (Generator) -->
         <MapWidgetFrame 
           ref="chatFrameRef"
           :show="activeWidget === 'chat'" 
-          @close="activeWidget = 'nearby'"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
           :minHeight="5"
-          :midHeight="tripStore.pendingTrip ? 18 : 22"
-          :maxHeight="tripStore.isProcessing ? 32 : 42"
-          title="AI 코스"
+          :midHeight="22"
+          :maxHeight="32"
+          title="AI 여행 코스 추천"
           :icon="icons.Sparkles"
         >
-          <template #header-action>
-            <button 
-              @click="handlePlannerReset"
-              class="p-2 text-slate-400 hover:text-indigo-600 transition-colors mr-2 active:rotate-180 duration-500"
-              title="전체 초기화"
-            >
-              <RotateCcw class="w-5 h-5" />
-            </button>
-          </template>
-          <TripDashboard 
-            @trip-update="handleTripUpdate" 
-            @processing-start="handleProcessingStart"
-            @reset="handlePlannerReset"
-            @place-click="handlePlaceSelect"
-            @edit-mode-change="handleEditModeChange"
-          />
+          <AiCourseGenerator @processing-start="handleProcessingStart" />
         </MapWidgetFrame>
 
         <!-- 3. District Info Overlay -->
         <MapWidgetFrame 
           :show="activeWidget === 'district' && !!selectedDistrict" 
-          @close="activeWidget = 'nearby'"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
           :minHeight="5"
           :midHeight="20"
           :maxHeight="40"
@@ -366,7 +455,7 @@ onMounted(async () => {
         <!-- 3.5 Place Info Overlay -->
         <MapWidgetFrame 
           :show="activeWidget === 'place' && !!selectedPlace" 
-          @close="activeWidget = 'nearby'"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
           :minHeight="5"
           :midHeight="25"
           :maxHeight="45"
@@ -376,25 +465,79 @@ onMounted(async () => {
           <PlaceInfoWidget v-if="selectedPlace" :place="selectedPlace" />
         </MapWidgetFrame>
 
-        <!-- 4. Directions/Recent History Overlay -->
+        <!-- 4. Directions Widget (List OR Detail) -->
         <MapWidgetFrame 
+          ref="routeFrameRef"
           :show="activeWidget === 'directions'" 
-          @close="activeWidget = 'nearby'"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; tripStore.pendingTrip = null; nearbyController.snapTo('MIN')"
           :minHeight="5"
-          :midHeight="22"
-          :maxHeight="40"
-          title="최근 길찾기"
+          :midHeight="18"
+          :maxHeight="42"
+          :title="tripStore.pendingTrip ? '경로 상세 정보' : '최근 길찾기'"
           :icon="icons.Navigation"
         >
-          <DirectionsWidget :recentCourses="recentCourses" @selectCourse="handleHistorySelect" />
+          <RouteDetailView 
+            v-if="tripStore.pendingTrip"
+            @trip-update="handleTripUpdate"
+            @edit-mode-change="handleEditModeChange"
+            @place-click="handlePlaceSelect"
+          />
+          <DirectionsWidget 
+            v-else
+            :recentCourses="tripStore.recentTrips" 
+            @selectCourse="handleHistorySelect" 
+          />
         </MapWidgetFrame>
+
+        <!-- 5. History & Social Widget -->
+        <MapWidgetFrame 
+          ref="historyFrameRef"
+          :show="activeWidget === 'history'" 
+          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          :minHeight="5"
+          :midHeight="30"
+          :maxHeight="45"
+          title="나의 여행 기록"
+          :icon="icons.Star"
+        >
+          <HistoryWidget 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')" 
+            @start-journey="activeWidget = 'chat'; activeTab = 'home'"
+            @view-plan="activeWidget = 'directions'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          />
+        </MapWidgetFrame>
+
+        <!-- 6. My Page Widget -->
+        <MapWidgetFrame 
+          ref="myFrameRef"
+          :show="activeWidget === 'my'" 
+          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          :minHeight="5"
+          :midHeight="25"
+          :maxHeight="40"
+          title="마이페이지"
+          :icon="icons.User"
+        >
+          <MyPageWidget />
+        </MapWidgetFrame>
+
+        <!-- Visit Authentication Modal -->
+        <VisitAuthModal 
+          v-if="showVisitAuth && nearPlace"
+          :placeName="nearPlace.title"
+          :placeId="nearPlace.contentId"
+          :lat="nearPlace.mapY"
+          :lng="nearPlace.mapX"
+          @close="showVisitAuth = false"
+          @success="handleVisitSuccess"
+        />
       </main>
 
       <!-- ③ Compact Footer -->
       <footer class="shrink-0 z-[100000] w-full bg-slate-900 border-t border-white/5 pb-safe">
         <div class="max-w-md mx-auto px-2 flex justify-between items-center h-18">
           <!-- 1. Explore -->
-          <button @click="activeTab = 'home'; activeWidget = 'nearby'" class="flex-1 flex flex-col items-center gap-1 transition-all"
+          <button @click="handleExploreClick" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'home' && activeWidget === 'nearby' ? 'text-indigo-400' : 'text-slate-500'">
             <Map class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">탐색</span>
@@ -405,7 +548,7 @@ onMounted(async () => {
             :class="activeWidget === 'directions' ? 'text-indigo-400' : 'text-slate-500'">
             <div class="relative">
               <Compass class="w-5 h-5" />
-              <div v-if="recentCourses.length > 0 && activeWidget !== 'directions'" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full flex items-center justify-center border border-slate-900">
+              <div v-if="tripStore.recentTrips.length > 0 && activeWidget !== 'directions'" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full flex items-center justify-center border border-slate-900">
                 <Sparkles class="w-1.5 h-1.5 text-white" />
               </div>
             </div>
@@ -413,24 +556,25 @@ onMounted(async () => {
           </button>
           
           <!-- 3. AI Course -->
-          <button @click="toggleWidget('chat')" class="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95"
-            :class="activeWidget === 'chat' ? 'bg-indigo-600/20 text-indigo-400' : 'text-slate-500'">
+          <button @click="toggleWidget('chat')" class="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95 bg-indigo-600/20"
+            :class="activeWidget === 'chat' ? 'text-indigo-400' : 'text-slate-400'">
             <div class="relative">
-              <Sparkles class="w-5 h-5" :class="{ 'animate-pulse': activeWidget === 'chat' }" />
-              <div v-if="activeWidget !== 'chat'" class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></div>
+              <Sparkles class="w-5 h-5" :class="{ 'animate-pulse': activeWidget === 'chat' && tripStore.isProcessing }" />
+              <div v-if="activeWidget !== 'chat' && !tripStore.pendingTrip" class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></div>
             </div>
             <span class="text-[9px] font-medium uppercase tracking-tight">AI코스</span>
           </button>
 
           <!-- 4. History -->
-          <button @click="goToHistory" class="flex-1 flex flex-col items-center gap-1 transition-all"
-            :class="activeTab === 'history' ? 'text-amber-400' : 'text-slate-500'">
+          <button @click="toggleWidget('history')" class="flex-1 flex flex-col items-center gap-1 transition-all"
+            :class="activeTab === 'history' ? 'text-indigo-400' : 'text-slate-500'">
             <Star class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">기록</span>
           </button>
 
           <!-- 5. My -->
-          <button class="flex-1 flex flex-col items-center gap-1 text-slate-500">
+          <button @click="toggleWidget('my')" class="flex-1 flex flex-col items-center gap-1 transition-all"
+            :class="activeTab === 'my' ? 'text-indigo-400' : 'text-slate-500'">
             <User class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">My</span>
           </button>

@@ -10,6 +10,7 @@ const props = defineProps<{
   places?: Place[]
   initialLat: number
   initialLng: number
+  visits?: any[] // Add visits prop for history/constellation mode
 }>()
 
 const emit = defineEmits(['map-move', 'district-click', 'place-click'])
@@ -101,6 +102,12 @@ const drawCourse = () => {
   if (!map || !props.course || !props.course.plans) return
   
   const path: any[] = []
+  const emotionColors: Record<string, string> = {
+    happy: '#FBBF24', // Gold
+    peaceful: '#10B981', // Emerald
+    excited: '#F43F5E', // Rose
+    melancholy: '#6366F1' // Indigo
+  }
   
   props.course.plans.forEach(plan => {
     plan.items.forEach((item, index) => {
@@ -108,30 +115,44 @@ const drawCourse = () => {
         const position = new naver.maps.LatLng(item.mapY, item.mapX)
         path.push(position)
 
+        // Check if this place is visited
+        const visit = props.visits?.find(v => v.placeId === item.contentId)
+        const isVisited = !!visit
+        const starColor = visit ? (emotionColors[visit.emotion] || '#FBBF24') : '#4F46E5'
+
         const marker = new naver.maps.Marker({
           position: position,
           map: map,
           title: item.title,
           icon: {
-            content: `
+            content: isVisited ? `
+              <div class="relative group cursor-pointer animate-in zoom-in duration-500">
+                <div class="w-10 h-10 flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow-[0_0_8px_${starColor}]" fill="${starColor}">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                <div class="absolute -top-1 -right-1">
+                  <div class="w-3 h-3 bg-white rounded-full animate-ping opacity-70"></div>
+                </div>
+              </div>
+            ` : `
               <div class="relative group cursor-pointer">
                 <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg text-[11px] group-hover:scale-110 group-hover:bg-indigo-700 transition-all">
                   ${index + 1}
                 </div>
-                <!-- Sparkle Effect for AI Recommended Marker -->
                 ${item.aiMetadata ? `
                 <div class="absolute -top-1 -right-1">
                   <div class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
                 </div>` : ''}
               </div>
             `,
-            anchor: new naver.maps.Point(16, 16)
+            anchor: new naver.maps.Point(isVisited ? 20 : 16, isVisited ? 20 : 16)
           },
-          zIndex: 200
+          zIndex: isVisited ? 300 : 200
         })
         markers.value.push(marker)
 
-        // Directly emit the normalized item on click
         naver.maps.Event.addListener(marker, 'click', () => {
           emit('place-click', item)
         })
@@ -229,7 +250,7 @@ defineExpose({
   updateUserLocation
 })
 
-watch([() => props.districts, () => props.course, () => props.places], () => {
+watch([() => props.districts, () => props.course, () => props.places, () => props.visits], () => {
   updateMap()
 }, { deep: true })
 

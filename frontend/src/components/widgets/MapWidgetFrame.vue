@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   show: boolean
@@ -97,19 +97,20 @@ const snapTo = (level: 'MIN' | 'MID' | 'MAX') => {
   currentHeight.value = snaps[level]
 }
 
+const getCurrentLevel = () => {
+  const snaps = getSnaps()
+  const error = 0.1 
+  if (Math.abs(currentHeight.value - snaps.MAX) < error) return 'MAX'
+  if (Math.abs(currentHeight.value - snaps.MID) < error) return 'MID'
+  return 'MIN'
+}
+
 defineExpose({
-  snapTo
+  snapTo,
+  getCurrentLevel
 })
 
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    // Small delay to ensure parent height is computed if recently mounted
-    setTimeout(() => {
-      const snaps = getSnaps()
-      currentHeight.value = snaps.MID
-    }, 0)
-  }
-})
+// Automatic snap removed to allow parent controller full control
 
 onMounted(() => {
   window.addEventListener('mousemove', onTouchMove)
