@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { TripResponse } from '../types/trip';
+import type { Place } from '../api/tourApi';
 
 export const useTripStore = defineStore('trip', () => {
   const currentTrip = ref<TripResponse | null>(null); // Confirmed/Active trip on map
@@ -96,6 +97,34 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
+  const removeItemFromPending = (index: number) => {
+    if (pendingTrip.value && pendingTrip.value.plans.length > 0) {
+      pendingTrip.value.plans[0].items.splice(index, 1);
+    }
+  };
+
+  const addPlaceToPending = (place: Place) => {
+    if (!pendingTrip.value) {
+      // Create a basic trip structure if none exists
+      pendingTrip.value = {
+        title: "내가 만든 커스텀 코스",
+        summary: "직접 선택한 장소들로 구성된 코스입니다.",
+        totalDuration: "계산 중",
+        plans: [{ day: 1, items: [] }]
+      };
+    }
+    
+    if (pendingTrip.value.plans.length > 0) {
+      pendingTrip.value.plans[0].items.push({
+        ...place,
+        aiMetadata: {
+          reason: "사용자가 직접 추가한 장소입니다.",
+          time: "방문 예정"
+        }
+      });
+    }
+  };
+
   const resetPlanner = () => {
     currentTrip.value = null;
     pendingTrip.value = null;
@@ -114,6 +143,8 @@ export const useTripStore = defineStore('trip', () => {
     prompt,
     startPlanning,
     confirmTrip,
+    removeItemFromPending,
+    addPlaceToPending,
     resetPlanner
   };
 });

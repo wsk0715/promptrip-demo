@@ -131,6 +131,12 @@ const handlePlannerReset = () => {
   chatFrameRef.value?.snapTo('MID')
 }
 
+const handleAddToCourse = (place: Place) => {
+  tripStore.addPlaceToPending(place)
+  activeWidget.value = 'chat'
+  chatFrameRef.value?.snapTo('MAX')
+}
+
 const handleTripUpdate = (course: TripResponse) => {
   // This is called when "Start Navigation" is clicked
   // Store already has the course in currentTrip, we just handle UI transition and history
@@ -318,7 +324,13 @@ onMounted(async () => {
           title="구역 상세 정보"
           :icon="icons.MapPin"
         >
-          <DistrictInfoWidget v-if="selectedDistrict" :district="selectedDistrict" />
+          <DistrictInfoWidget 
+            v-if="selectedDistrict" 
+            :district="selectedDistrict" 
+            :places="places"
+            @place-select="handlePlaceSelect"
+            @add-to-course="handleAddToCourse"
+          />
         </MapWidgetFrame>
 
         <!-- 3.5 Place Info Overlay -->

@@ -39,7 +39,7 @@ export interface TripItem extends Place {
   aiMetadata?: {
     time: string;         // 방문 예정 시간 (예: "14:00")
     reason: string;       // AI의 추천 이유
-    avgStay: string;      // 예상 체류 시간
+    avgStay?: string;      // 예상 체류 시간
     travelTimeNext?: string; // 다음 장소까지 이동 시간
   };
 }

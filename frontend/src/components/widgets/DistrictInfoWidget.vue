@@ -1,12 +1,43 @@
 <script setup lang="ts">
-import { Clock, Users, Ticket, Plus } from 'lucide-vue-next'
+import { Clock, Users, Ticket, Plus, MapPin, Star } from 'lucide-vue-next'
 import type { District } from '../../types/district'
+import type { Place } from '../../api/tourApi'
+import { computed } from 'vue'
 
 const props = defineProps<{
   district: District
+  places: Place[]
 }>()
 
-const emit = defineEmits(['addToCourse'])
+const emit = defineEmits(['addToCourse', 'place-select'])
+
+// Calculate distance between two points in meters
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3 // Earth radius in meters
+  const φ1 = lat1 * Math.PI / 180
+  const φ2 = lat2 * Math.PI / 180
+  const Δφ = (lat2 - lat1) * Math.PI / 180
+  const Δλ = (lon2 - lon1) * Math.PI / 180
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c
+}
+
+const residentPlaces = computed(() => {
+  return props.places.filter(place => {
+    const dist = calculateDistance(
+      props.district.lat, 
+      props.district.lng, 
+      place.mapY, 
+      place.mapX
+    )
+    return dist <= props.district.radius
+  })
+})
 </script>
 
 <template>
@@ -67,6 +98,54 @@ const emit = defineEmits(['addToCourse'])
       >
         #{{ tag }}
       </span>
+    </div>
+
+    <!-- Resident Places List -->
+    <div class="flex flex-col gap-4 mt-2">
+      <div class="flex items-center justify-between">
+        <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+          📍 이 구역 추천 장소
+          <span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">{{ residentPlaces.length }}</span>
+        </h4>
+      </div>
+      
+      <div v-if="residentPlaces.length > 0" class="flex flex-col gap-3">
+        <div 
+          v-for="place in residentPlaces" 
+          :key="place.contentId"
+          class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 hover:shadow-md transition-all group cursor-pointer"
+          @click="emit('place-select', place)"
+        >
+          <div class="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+            <img v-if="place.firstImage" :src="place.firstImage" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+            <div v-else class="w-full h-full flex items-center justify-center text-slate-300">
+              <MapPin class="w-6 h-6" />
+            </div>
+          </div>
+          
+          <div class="flex-1 min-w-0">
+            <h5 class="text-sm font-bold text-slate-900 truncate">{{ place.title }}</h5>
+            <div class="flex items-center gap-2 mt-1">
+              <div v-if="place.rating" class="flex items-center gap-1">
+                <Star class="w-3 h-3 text-amber-400 fill-amber-400" />
+                <span class="text-[10px] font-bold text-slate-600">{{ place.rating }}</span>
+              </div>
+              <span class="text-[10px] font-medium text-slate-400">{{ place.addr1 }}</span>
+            </div>
+          </div>
+          
+          <button 
+            @click.stop="emit('addToCourse', place)"
+            class="p-2.5 bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
+          >
+            <Plus class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <div v-else class="py-8 flex flex-col items-center justify-center gap-2 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 text-slate-400">
+        <MapPin class="w-6 h-6 opacity-20" />
+        <p class="text-[10px] font-bold uppercase tracking-widest">추천 장소가 없습니다</p>
+      </div>
     </div>
 
     <!-- Action Buttons -->
