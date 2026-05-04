@@ -39,6 +39,11 @@ export const useTripStore = defineStore('trip', () => {
   const recentTrips = ref<TripResponse[]>([]);
   const historyTrips = ref<HistoryTrip[]>([]);
   const visitedPlaces = ref<VisitRecord[]>([]);
+  const preferences = ref({
+    natureCity: 0.5, // 0: Nature, 1: City
+    healingParty: 0.5, // 0: Healing, 1: Party
+    traditionTrend: 0.5 // 0: Tradition, 1: Trend
+  });
 
   const communityTrips = ref<CommunityTrip[]>([]);
 
@@ -110,6 +115,7 @@ export const useTripStore = defineStore('trip', () => {
 
     const steps = [
       "사용자 취향 분석 중...",
+      `취향 벡터 계산 완료 (자연-도시: ${preferences.value.natureCity.toFixed(1)})`,
       "서울시청 주변 저매출 구역 데이터 조회 중...",
       "안티-허브 추천 알고리즘 가동...",
       "최적의 이동 동선 계산 중...",
@@ -280,6 +286,7 @@ export const useTripStore = defineStore('trip', () => {
     resetPlanner,
     fetchCommunityTrips,
     importCommunityTrip,
-    shareTripToCommunity
+    shareTripToCommunity,
+    preferences
   };
 });
