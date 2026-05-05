@@ -116,7 +116,7 @@ export const useTripStore = defineStore('trip', () => {
     const steps = [
       "사용자 취향 분석 중...",
       `취향 벡터 계산 완료 (자연-도시: ${preferences.value.natureCity.toFixed(1)})`,
-      "서울시청 주변 저매출 구역 데이터 조회 중...",
+      "부산 해운대구 주변 저매출 구역 데이터 조회 중...",
       "안티-허브 추천 알고리즘 가동...",
       "최적의 이동 동선 계산 중...",
       "맞춤형 여행 코스 생성 완료!"
@@ -129,8 +129,8 @@ export const useTripStore = defineStore('trip', () => {
 
     pendingTrip.value = {
       title: query.length > 10 ? `${query.substring(0, 10)}... 코스` : `${query} 코스`,
-      summary: "인파를 피해 여유로운 돌담길을 걷고, 을지로의 빈티지한 감성을 즐기는 완벽한 반나절 코스입니다.",
-      totalDuration: "약 4시간",
+      summary: "시원한 바다 바람을 맞으며 해운대 해변을 걷고, 더베이 101의 화려한 야경을 즐기는 완벽한 부산 반나절 코스입니다.",
+      totalDuration: "약 3시간 30분",
       plans: [
         {
           day: 1,
@@ -138,45 +138,45 @@ export const useTripStore = defineStore('trip', () => {
             {
               contentId: "ai_1",
               contentTypeId: "12",
-              title: "덕수궁 돌담길",
-              addr1: "서울특별시 중구 세종대로 99",
-              mapX: 126.9751,
-              mapY: 37.5658,
-              firstImage: "https://images.unsplash.com/photo-1578912995000-601c0f065366?auto=format&fit=crop&q=80&w=800",
-              aiMetadata: {
-                time: "14:00",
-                reason: "현재 혼잡도가 매우 낮아 조용한 힐링에 최적입니다.",
-                avgStay: "40분",
-                travelTimeNext: "도보 10분"
-              }
-            },
-            {
-              contentId: "ai_2",
-              contentTypeId: "39",
-              title: "명동 로컬 맛집",
-              addr1: "서울특별시 중구 명동길",
-              mapX: 126.9842,
-              mapY: 37.5635,
-              firstImage: "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&q=80&w=800",
+              title: "해운대 해수욕장 & 블루라인파크",
+              addr1: "부산광역시 해운대구 달맞이길62번길 13",
+              mapX: 129.1762,
+              mapY: 35.1592,
+              firstImage: "https://images.unsplash.com/photo-1598124808304-40656a81f337?auto=format&fit=crop&q=80&w=800",
               aiMetadata: {
                 time: "15:00",
-                reason: "유명 관광 식당보다 평점이 높고 대기가 적은 현지인 추천 장소입니다.",
+                reason: "해변 열차를 타고 부산의 푸른 바다를 가장 가까이서 감상할 수 있습니다.",
                 avgStay: "1시간",
                 travelTimeNext: "도보 15분"
               }
             },
             {
-              contentId: "ai_3",
-              contentTypeId: "39",
-              title: "을지로 빈티지 카페",
-              addr1: "서울특별시 중구 을지로",
-              mapX: 126.9910,
-              mapY: 37.5661,
-              firstImage: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800",
+              contentId: "ai_2",
+              contentTypeId: "12",
+              title: "더베이 101",
+              addr1: "부산광역시 해운대구 동백로 52",
+              mapX: 129.1552,
+              mapY: 35.1565,
+              firstImage: "https://images.unsplash.com/photo-1541018939203-36eeab6d5721?auto=format&fit=crop&q=80&w=800",
               aiMetadata: {
                 time: "16:30",
-                reason: "사용자님의 커피 취향에 맞는 조용한 다락방 스타일의 카페입니다.",
-                avgStay: "1시간 30분"
+                reason: "마린시티의 화려한 스카이라인을 배경으로 인생샷을 남기기 좋습니다.",
+                avgStay: "1시간",
+                travelTimeNext: "차량 10분"
+              }
+            },
+            {
+              contentId: "ai_3",
+              contentTypeId: "39",
+              title: "달맞이길 감성 카페",
+              addr1: "부산광역시 해운대구 달맞이길",
+              mapX: 129.1725,
+              mapY: 35.1610,
+              firstImage: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800",
+              aiMetadata: {
+                time: "18:00",
+                reason: "사용자님의 취향에 맞는 조용하고 바다 전망이 아름다운 다락방 스타일의 카페입니다.",
+                avgStay: "1시간"
               }
             }
           ]
@@ -222,6 +222,26 @@ export const useTripStore = defineStore('trip', () => {
       currentTrip.value.completedAt = new Date().toISOString();
       historyTrips.value.unshift({ ...currentTrip.value });
     }
+  };
+
+  /**
+   * Quick visit for demo purposes
+   */
+  const quickRecordVisit = (placeId: string) => {
+    if (!currentTrip.value) return;
+    if (isPlaceVisited(placeId)) return;
+
+    recordVisit({
+      placeId,
+      rating: 5,
+      emotion: '😊 좋아요',
+      comment: '데모 방문 처리 완료!'
+    });
+  };
+
+  const stopNavigation = () => {
+    currentTrip.value = null;
+    pendingTrip.value = null;
   };
 
   const isPlaceVisited = (placeId: string) => {
@@ -284,6 +304,8 @@ export const useTripStore = defineStore('trip', () => {
     removeItemFromPending,
     addPlaceToPending,
     resetPlanner,
+    stopNavigation,
+    quickRecordVisit,
     fetchCommunityTrips,
     importCommunityTrip,
     shareTripToCommunity,

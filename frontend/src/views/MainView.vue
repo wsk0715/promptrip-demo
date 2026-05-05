@@ -63,10 +63,10 @@ const selectedDistrict = ref<District | null>(null)
 const selectedPlace = ref<Place | null>(null)
 const isLocationReady = ref(false)
 const isMapMoved = ref(false)
-const currentMapCenter = ref({ lat: 37.5665, lng: 126.9780 })
+const currentMapCenter = ref({ lat: 35.1587, lng: 129.1604 })
 const isSearchFilterInitial = ref(false)
-const initialCoords = ref({ lat: 37.5665, lng: 126.9780 }) // Fixed Seoul City Hall
-const userLocation = ref({ lat: 37.5665, lng: 126.9780 })
+const initialCoords = ref({ lat: 35.1587, lng: 129.1604 }) // Fixed Busan Haeundae
+const userLocation = ref({ lat: 35.1587, lng: 129.1604 })
 const showVisitAuth = ref(false)
 const nearPlace = ref<any>(null)
 
@@ -387,20 +387,6 @@ onMounted(async () => {
           >
             <Navigation class="w-6 h-6 fill-indigo-50" />
           </button>
-
-          <!-- Mock GPS Simulator Trigger -->
-          <Transition name="fade">
-            <div v-if="tripStore.currentTrip" class="flex flex-col gap-2">
-              <button 
-                v-for="(item, idx) in tripStore.currentTrip.plans[0].items" :key="idx"
-                @click="teleportTo(item.mapY, item.mapX)"
-                class="w-10 h-10 bg-slate-900 text-white rounded-xl shadow-lg flex items-center justify-center active:scale-90 transition-all text-[10px] font-black"
-                :title="item.title"
-              >
-                {{ idx + 1 }}
-              </button>
-            </div>
-          </Transition>
         </div>
 
         <!-- Systematic Map Widgets (Contained in Main) -->
@@ -477,7 +463,7 @@ onMounted(async () => {
           :icon="icons.Navigation"
         >
           <RouteDetailView 
-            v-if="tripStore.pendingTrip"
+            v-if="tripStore.pendingTrip || tripStore.currentTrip"
             @trip-update="handleTripUpdate"
             @edit-mode-change="handleEditModeChange"
             @place-click="handlePlaceSelect"

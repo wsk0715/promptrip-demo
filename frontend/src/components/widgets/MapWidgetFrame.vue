@@ -150,7 +150,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Unified Header Area (Title & Icon) -->
-      <div v-if="title" class="px-6 py-3 shrink-0 flex items-center justify-between border-b border-slate-50">
+      <div v-if="title" class="px-5 py-2.5 shrink-0 flex items-center justify-between border-b border-slate-50">
         <div class="flex items-center gap-2.5">
           <component :is="icon" v-if="icon" class="w-5 h-5 text-indigo-600" />
           <h4 class="text-lg font-black text-slate-900 tracking-tight">{{ title }}</h4>

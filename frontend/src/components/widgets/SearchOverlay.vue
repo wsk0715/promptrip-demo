@@ -27,7 +27,7 @@ const toggleCategory = (cat: string) => {
   }
 }
 
-const recentSearches = ['성수동 팝업', '덕수궁 돌담길', '을지로 카페']
+const recentSearches = ['전포 카페거리', '해운대 블루라인파크', '영도 흰여울마을']
 const popularThemes = [
   { icon: '🌙', label: '심야 데이트' },
   { icon: '☕', label: '감성 카페' },
@@ -132,7 +132,7 @@ watch(() => props.show, (newVal) => {
       <!-- Main Content Container -->
       <main class="flex-1 overflow-y-auto relative bg-slate-50/30">
         <!-- Filter Panel -->
-        <div v-if="isFilterExpanded" class="px-6 py-8 flex flex-col gap-8">
+        <div v-if="isFilterExpanded" class="p-5 flex flex-col gap-8">
           <!-- Sort Options -->
           <section class="flex flex-col gap-4">
             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">정렬 기준</h4>
@@ -198,9 +198,9 @@ watch(() => props.show, (newVal) => {
         </div>
 
         <!-- Default Search Content (Recent/Trending) -->
-        <div v-else class="px-6 py-8 flex flex-col gap-10">
+        <div v-else class="p-5 flex flex-col gap-8">
           <!-- Recent Searches -->
-          <section class="flex flex-col gap-5">
+          <section class="flex flex-col gap-4">
             <div class="flex justify-between items-center">
               <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Clock class="w-4 h-4" /> 최근 검색어
@@ -211,7 +211,7 @@ watch(() => props.show, (newVal) => {
               <div 
                 v-for="search in recentSearches" :key="search"
                 @click="handleSelect(search)"
-                class="flex items-center justify-between py-4 group cursor-pointer border-b border-slate-50 last:border-0 active:bg-slate-50 rounded-2xl px-3 -mx-3 transition-all"
+                class="flex items-center justify-between py-2.5 group cursor-pointer border-b border-slate-50 last:border-0 active:bg-slate-50 rounded-2xl px-3 -mx-3 transition-all"
               >
                 <div class="flex items-center gap-4">
                   <div class="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">

@@ -74,7 +74,7 @@ watch(() => props.place, () => {
     </div>
 
     <!-- Content -->
-    <div class="px-6 py-6 flex flex-col gap-5">
+    <div class="p-5 flex flex-col gap-5">
       <!-- AI Reason Card (If available) -->
       <div v-if="place.aiMetadata" class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100/50 -mt-2">
         <p class="text-xs font-bold text-slate-700 leading-relaxed">

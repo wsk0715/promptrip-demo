@@ -50,7 +50,7 @@ const setPreference = (key: 'natureCity' | 'healingParty' | 'traditionTrend', va
         <input 
           v-model="tripStore.prompt"
           @keyup.enter="handleSearch"
-          placeholder="예: 종로의 조용한 카페 코스"
+          placeholder="예: 해운대 달맞이길 카페 코스"
           class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-100 focus:bg-white rounded-2xl py-5 pl-12 pr-4 text-sm font-bold shadow-sm transition-all outline-none"
           :disabled="tripStore.isProcessing"
         />

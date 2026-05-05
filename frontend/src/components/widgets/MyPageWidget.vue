@@ -15,7 +15,7 @@ const menuItems = [
     <div class="flex-1 overflow-y-auto custom-scrollbar">
       
       <!-- 1. Compact Profile Section (Now Scrollable) -->
-      <div class="bg-white px-6 pt-6 pb-6 border-b border-slate-50">
+      <div class="bg-white p-5 border-b border-slate-50">
         <div class="flex items-center gap-4">
           <div class="relative">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-400 flex items-center justify-center shadow-lg shadow-indigo-100">
@@ -52,10 +52,10 @@ const menuItems = [
       </div>
 
       <!-- 2. Menu List -->
-      <div class="p-4 space-y-2">
+      <div class="p-4 space-y-1.5">
         <button 
           v-for="item in menuItems" :key="item.label"
-          class="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-slate-50 hover:border-indigo-100 hover:shadow-sm active:scale-98 transition-all group"
+          class="w-full flex items-center justify-between py-2.5 px-4 bg-white rounded-xl border border-slate-50 hover:border-indigo-100 hover:shadow-sm active:scale-98 transition-all group"
         >
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">

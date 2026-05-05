@@ -30,25 +30,28 @@ const handleConfirmTrip = () => {
 </script>
 
 <template>
-  <div v-if="tripStore.pendingTrip" class="h-full flex flex-col overflow-hidden relative">
+  <div v-if="tripStore.currentTrip || tripStore.pendingTrip" class="h-full flex flex-col overflow-hidden relative">
     <!-- Scrollable Content -->
-    <div class="flex-1 overflow-y-auto p-6 custom-scrollbar pb-24">
+    <div class="flex-1 overflow-y-auto p-5 custom-scrollbar pb-24">
       <div class="px-1 -mt-2 mb-6">
         <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-          🎯 {{ tripStore.pendingTrip.title }}
+          🎯 {{ (tripStore.currentTrip || tripStore.pendingTrip).title }}
         </h3>
         <p class="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
-          {{ tripStore.pendingTrip.summary }}
+          {{ (tripStore.currentTrip || tripStore.pendingTrip).summary }}
         </p>
         <div class="flex items-center gap-2 mt-4">
           <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full border border-indigo-100">
-            {{ tripStore.pendingTrip.totalDuration }} 소요 예상
+            {{ (tripStore.currentTrip || tripStore.pendingTrip).totalDuration }} 소요 예상
+          </span>
+          <span v-if="tripStore.currentTrip" class="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full border border-amber-100 animate-pulse">
+            현재 안내 중
           </span>
         </div>
       </div>
 
       <div class="space-y-8">
-        <div v-for="day in tripStore.pendingTrip.plans" :key="day.day" class="space-y-5">
+        <div v-for="day in (tripStore.currentTrip || tripStore.pendingTrip).plans" :key="day.day" class="space-y-5">
           <div class="flex items-center gap-3 px-1">
             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Day {{ day.day }}</span>
             <div class="h-px flex-1 bg-slate-100"></div>
@@ -57,15 +60,23 @@ const handleConfirmTrip = () => {
           <div class="space-y-6 relative ml-3 border-l-2 border-slate-100 pl-7 py-1">
             <div v-for="(item, idx) in day.items" :key="idx" class="relative group">
               <!-- Marker Icon -->
-              <div class="absolute -left-[39px] top-0 w-6 h-6 rounded-full bg-white border-2 border-indigo-600 flex items-center justify-center text-[10px] font-black text-indigo-600 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                {{ idx + 1 }}
+              <div 
+                class="absolute -left-[39px] top-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-sm transition-colors"
+                :class="tripStore.isPlaceVisited(item.contentId) 
+                  ? 'bg-emerald-500 text-white border-none' 
+                  : 'bg-white border-2 border-indigo-600 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'"
+              >
+                <Check v-if="tripStore.isPlaceVisited(item.contentId)" class="w-3.5 h-3.5" />
+                <span v-else>{{ idx + 1 }}</span>
               </div>
               
               <!-- Card -->
               <div 
-                class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer relative"
+                class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer relative"
+                :class="{ 'opacity-60 grayscale-[0.3]': tripStore.isPlaceVisited(item.contentId) }"
                 @click="emit('place-click', item)"
               >
+                <!-- Edit Mode Delete Button -->
                 <button 
                   v-if="isEditing"
                   @click.stop="tripStore.removeItemFromPending(idx)"
@@ -74,12 +85,32 @@ const handleConfirmTrip = () => {
                   <X class="w-4 h-4" />
                 </button>
 
-                <div class="flex justify-between items-start mb-2">
-                  <h4 class="font-black text-slate-900 text-base">{{ item.title }}</h4>
-                  <span v-if="item.aiMetadata?.time" class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-lg">{{ item.aiMetadata.time }}</span>
+                <!-- Card Content Header -->
+                <div class="flex justify-between items-start mb-3">
+                  <div class="flex-1 min-w-0 pr-2">
+                    <h4 class="font-black text-slate-900 text-base flex items-center gap-2 truncate">
+                      {{ item.title }}
+                      <Check v-if="tripStore.isPlaceVisited(item.contentId)" class="w-4 h-4 text-emerald-500 shrink-0" />
+                    </h4>
+                    <p class="text-xs font-semibold text-slate-500 leading-snug mt-0.5 truncate">{{ item.addr1 }}</p>
+                  </div>
+
+                  <!-- Action Area -->
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span v-if="item.aiMetadata?.time" class="text-[10px] font-bold text-indigo-500 bg-indigo-50/50 px-2 py-0.5 rounded-lg border border-indigo-100/50">
+                      {{ item.aiMetadata.time }}
+                    </span>
+                    
+                    <button 
+                      v-if="tripStore.currentTrip && !tripStore.isPlaceVisited(item.contentId)"
+                      @click.stop="tripStore.quickRecordVisit(item.contentId)"
+                      class="px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black shadow-lg shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all flex items-center gap-1.5"
+                    >
+                      <Navigation class="w-3 h-3 fill-white" />
+                      방문
+                    </button>
+                  </div>
                 </div>
-                
-                <p class="text-xs font-semibold text-slate-500 leading-snug mb-3">{{ item.addr1 }}</p>
                 
                 <div v-if="item.aiMetadata?.reason" class="bg-slate-50 rounded-xl p-3 border border-slate-100/50 mb-3">
                   <p class="text-[11px] font-bold text-slate-600 leading-tight">
@@ -113,7 +144,16 @@ const handleConfirmTrip = () => {
 
     <!-- Sticky Bottom Actions -->
     <div class="absolute bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-6 py-4 flex gap-3 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-      <template v-if="!isEditing">
+      <template v-if="tripStore.currentTrip">
+        <button 
+          @click="tripStore.stopNavigation()"
+          class="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-xs font-black shadow-lg shadow-slate-200 transition-all flex items-center justify-center gap-2 active:scale-95"
+        >
+          <X class="w-4 h-4" />
+          안내 종료
+        </button>
+      </template>
+      <template v-else-if="!isEditing">
         <button 
           @click="handleStartEdit"
           class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 active:scale-95"

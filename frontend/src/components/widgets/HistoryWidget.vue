@@ -42,7 +42,7 @@ const getEmotionIcon = (emotion: string) => {
 <template>
   <div class="h-full flex flex-col bg-slate-50 overflow-hidden">
     <!-- Tab Headers -->
-    <div class="flex px-6 pt-4 gap-6 border-b border-slate-100 bg-white">
+    <div class="flex px-5 pt-4 gap-6 border-b border-slate-100 bg-white">
       <button 
         @click="handleSubTabChange('mine')"
         class="pb-3 border-b-2 text-sm font-black transition-all"
@@ -60,7 +60,7 @@ const getEmotionIcon = (emotion: string) => {
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+    <div class="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-5">
       
       <!-- 1. My Journeys Tab -->
       <div v-if="activeSubTab === 'mine'" class="space-y-6">
@@ -85,7 +85,7 @@ const getEmotionIcon = (emotion: string) => {
         <div v-else class="space-y-4">
           <div 
             v-for="trip in tripStore.historyTrips" :key="trip.id"
-            class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all group cursor-pointer"
+            class="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all group cursor-pointer"
           >
             <div class="flex justify-between items-start mb-4">
               <div class="space-y-1">
@@ -154,7 +154,7 @@ const getEmotionIcon = (emotion: string) => {
             </div>
           </div>
 
-          <div class="p-6">
+          <div class="p-4">
             <div class="flex gap-2 mb-3">
               <span v-for="tag in trip.tags" :key="tag" class="px-2 py-1 bg-indigo-50 text-indigo-500 rounded-lg text-[9px] font-black">#{{ tag }}</span>
             </div>
@@ -178,7 +178,7 @@ const getEmotionIcon = (emotion: string) => {
       </div>
 
       <!-- Common Stats Section (Optional) -->
-      <div v-if="tripStore.historyTrips.length > 0 && activeSubTab === 'mine'" class="bg-indigo-600 rounded-[2rem] p-6 text-white shadow-xl shadow-indigo-100">
+      <div v-if="tripStore.historyTrips.length > 0 && activeSubTab === 'mine'" class="bg-indigo-600 rounded-[2rem] p-5 text-white shadow-xl shadow-indigo-100">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
             <Award class="w-6 h-6" />
