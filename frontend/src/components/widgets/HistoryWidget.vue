@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useTripStore } from '../../services/tripService';
-import { Award, Share2, ChevronRight, Heart, MapPin, X, Star, Camera, Download, Sparkles } from 'lucide-vue-next';
-import { formatDate, getEmotionIcon, getEmotionColor } from '../../utils/formatUtils';
+import { Award, Share2, ChevronRight, X, Star, Sparkles } from 'lucide-vue-next';
+import { formatDate, getEmotionIcon } from '../../utils/formatUtils';
 import WidgetContainer from '../common/WidgetContainer.vue';
-import BottomActionBar from '../common/BottomActionBar.vue';
+import SafeImage from '../common/SafeImage.vue';
 
 const tripStore = useTripStore();
 const activeSubTab = ref<'mine' | 'community'>('mine');
@@ -38,11 +38,15 @@ const getPlaceTitle = (trip: any, placeId: string) => {
   const allItems = trip.plans.flatMap((p: any) => p.items);
   return allItems.find((p: any) => p.contentId === placeId)?.title || '장소 정보 없음';
 };
+
+const getPlaceImage = (trip: any, placeId: string) => {
+  const allItems = trip.plans.flatMap((p: any) => p.items);
+  return allItems.find((p: any) => p.contentId === placeId)?.firstImage;
+};
 </script>
 
 <template>
   <WidgetContainer padding="p-0" space="space-y-0">
-    <!-- ... (main list code) ... -->
     <template #header>
       <div class="flex px-6 pt-4 gap-6 border-b border-slate-100 bg-white shadow-sm">
         <button 
@@ -96,7 +100,7 @@ const getPlaceTitle = (trip: any, placeId: string) => {
       <div v-else class="space-y-6">
         <div v-for="trip in tripStore.communityTrips" :key="trip.id" class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all group">
           <div class="relative h-44">
-            <img :src="trip.plans[0].items[0].firstImage" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <SafeImage :src="trip.plans[0].items[0].firstImage" class-name="w-full h-full" />
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
             <div class="absolute bottom-4 left-6 flex items-center gap-2">
               <img :src="trip.authorImage" class="w-6 h-6 rounded-full border border-white/50" />
@@ -114,69 +118,57 @@ const getPlaceTitle = (trip: any, placeId: string) => {
       </div>
     </div>
 
-    <!-- 3. Record Detail Overlay (Magazine Style) -->
+    <!-- 3. Record Detail Overlay (Ultra Clean & Image-rich) -->
     <Transition name="slide-up">
       <div v-if="selectedHistoryTrip" class="absolute inset-0 z-[100] bg-white flex flex-col overflow-hidden">
         <WidgetContainer padding="p-0" space="space-y-0" class="!bg-white">
           <template #header>
-            <div class="px-6 py-4 flex items-center justify-between border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-20">
-              <button @click="selectedHistoryTrip = null; emit('history-focus', null)" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
-                <X class="w-6 h-6" />
+            <div class="px-6 py-3 flex items-center justify-between border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+              <button @click="selectedHistoryTrip = null; emit('history-focus', null)" class="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
+                <X class="w-5 h-5" />
               </button>
-              <span class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em]">Personal Memoir</span>
-              <div class="w-10"></div> <!-- Spacer -->
+              <span class="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em]">Trip Memoir</span>
+              <div class="w-8"></div>
             </div>
           </template>
 
           <div class="flex-1 overflow-y-auto custom-scrollbar pb-32">
-            <!-- Dramatic Hero Section -->
-            <div class="px-8 pt-12 pb-16 text-center bg-gradient-to-b from-slate-50/50 to-white">
-              <div class="inline-block px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-6 shadow-lg shadow-indigo-100">
+            <div class="px-6 pt-10 pb-8 text-center bg-white">
+              <span class="inline-block px-3 py-1 bg-slate-50 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest mb-4">
                 {{ formatDate(selectedHistoryTrip.completedAt) }}
-              </div>
-              <h2 class="text-4xl font-black text-slate-900 leading-tight tracking-tight mb-4 break-keep">
+              </span>
+              <h2 class="text-2xl font-black text-slate-900 leading-tight tracking-tight mb-2 break-keep">
                 {{ selectedHistoryTrip.title }}
               </h2>
-              <div class="flex items-center justify-center gap-3">
-                <div class="h-px w-8 bg-slate-200"></div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Archived with {{ selectedHistoryTrip.visits.length }} Moments
-                </p>
-                <div class="h-px w-8 bg-slate-200"></div>
-              </div>
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {{ selectedHistoryTrip.visits.length }} Places Explored
+              </p>
             </div>
 
-            <!-- Memoir Timeline -->
-            <div class="px-6 space-y-16 relative">
-              <div class="absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 -translate-x-1/2 hidden sm:block"></div>
-              
-              <div v-for="(visit, idx) in selectedHistoryTrip.visits" :key="idx" class="relative">
-                <!-- Large Emotional Badge -->
-                <div class="flex flex-col items-center mb-8">
-                  <div 
-                    class="w-20 h-20 rounded-[2.5rem] bg-white border border-slate-100 shadow-xl flex items-center justify-center text-4xl mb-4 hover:scale-110 transition-transform duration-500 cursor-default"
-                  >
-                    {{ getEmotionIcon(visit.emotion) }}
-                  </div>
-                  <h4 class="text-xl font-black text-slate-900 tracking-tight">{{ getPlaceTitle(selectedHistoryTrip, visit.placeId) }}</h4>
-                </div>
-                
-                <!-- Comment Card -->
-                <div class="relative px-4">
-                  <div class="bg-slate-50 rounded-[2rem] p-8 text-center border border-slate-100/50 relative overflow-hidden group">
-                    <Sparkles class="absolute top-4 right-4 w-5 h-5 text-indigo-200 group-hover:rotate-12 transition-transform" />
-                    
-                    <div class="flex justify-center gap-1 mb-4">
-                      <Star v-for="i in 5" :key="i" class="w-3.5 h-3.5" :class="i <= visit.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'" />
-                    </div>
+            <div class="px-5 space-y-6">
+              <div v-for="(visit, idx) in selectedHistoryTrip.visits" :key="idx" class="bg-white rounded-[1.5rem] overflow-hidden border border-slate-100 flex flex-col">
+                <SafeImage 
+                  :src="getPlaceImage(selectedHistoryTrip, visit.placeId)" 
+                  class-name="h-52 w-full"
+                />
 
-                    <p class="text-lg font-bold text-slate-700 leading-relaxed italic font-serif">
+                <div class="p-5">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">{{ getEmotionIcon(visit.emotion) }}</span>
+                        <h4 class="text-base font-black text-slate-900 leading-tight">{{ getPlaceTitle(selectedHistoryTrip, visit.placeId) }}</h4>
+                      </div>
+                    </div>
+                    <div class="flex gap-0.5 pt-1">
+                      <Star v-for="i in 5" :key="i" class="w-2.5 h-2.5" :class="i <= visit.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'" />
+                    </div>
+                  </div>
+                  
+                  <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100/50">
+                    <p class="text-[13px] font-bold text-slate-600 leading-relaxed italic">
                       "{{ visit.comment }}"
                     </p>
-                    
-                    <div class="mt-6 pt-6 border-t border-slate-200/50">
-                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Memory Reflected</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -184,13 +176,13 @@ const getPlaceTitle = (trip: any, placeId: string) => {
           </div>
 
           <template #footer>
-            <div class="absolute bottom-0 inset-x-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-50 z-30">
+            <div class="absolute bottom-0 inset-x-0 p-5 bg-white/90 backdrop-blur-xl border-t border-slate-50 z-30">
               <button 
                 @click="handleShare"
-                class="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-sm font-black shadow-2xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[12px] font-black shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 group"
               >
-                <Share2 class="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                여정 공유하기
+                <Share2 class="w-4 h-4" />
+                이 여정 공유하기
               </button>
             </div>
           </template>

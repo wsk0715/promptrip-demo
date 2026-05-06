@@ -55,10 +55,16 @@ export const useTripStore = defineStore('trip', () => {
       summary: '해운대 달맞이길부터 남천동 벚꽃터널까지, 부산의 봄을 온전히 만끽했던 하루입니다.',
       totalDuration: '5:30',
       completedAt: '2026-04-12T18:30:00Z',
-      plans: [{ day: 1, items: [] }],
+      plans: [{ 
+        day: 1, 
+        items: [
+          { contentId: 'p1', title: '해운대 달맞이길', addr1: '부산 해운대구 달맞이길', mapX: 129.1762, mapY: 35.1592, firstImage: 'https://images.unsplash.com/photo-1598124808304-40656a81f337?q=80&w=800' },
+          { contentId: 'p2', title: '남천동 삼익비치 벚꽃길', addr1: '부산 수영구 남천동', mapX: 129.1124, mapY: 35.1435, firstImage: 'https://images.unsplash.com/photo-1541018939203-36eeab6d5721?q=80&w=800' }
+        ] 
+      }],
       visits: [
         { tripId: 'hist_1', placeId: 'p1', timestamp: '2026-04-12T14:00:00Z', rating: 5, emotion: '🌸 설렘', comment: '벚꽃이 정말 흐드러지게 피었어요. 내년에 또 오고 싶네요.' },
-        { tripId: 'hist_1', placeId: 'p2', timestamp: '2026-04-12T16:30:00Z', rating: 4, emotion: '☕ 여유', comment: '카페에서 바라보는 바다 전망이 예술이었습니다.' }
+        { tripId: 'hist_1', placeId: 'p2', timestamp: '2026-04-12T16:30:00Z', rating: 4, emotion: '☕ 여유', comment: '꽃비가 내리는 길을 걷는 기분은 정말 환상적이었습니다.' }
       ]
     },
     {
@@ -67,10 +73,16 @@ export const useTripStore = defineStore('trip', () => {
       summary: '송정에서 시작해 광안리 야경으로 마무리한 완벽한 해안선 투어입니다.',
       totalDuration: '8:00',
       completedAt: '2026-05-01T21:00:00Z',
-      plans: [{ day: 1, items: [] }],
+      plans: [{ 
+        day: 1, 
+        items: [
+          { contentId: 'p3', title: '송정 해수욕장', addr1: '부산 해운대구 송정동', mapX: 129.1989, mapY: 35.1786, firstImage: 'https://images.unsplash.com/photo-1620050861803-34676100c598?q=80&w=800' },
+          { contentId: 'p4', title: '광안리 해수욕장', addr1: '부산 수영구 광안동', mapX: 129.1189, mapY: 35.1532, firstImage: 'https://images.unsplash.com/photo-1598124808304-40656a81f337?q=80&w=800' }
+        ] 
+      }],
       visits: [
         { tripId: 'hist_2', placeId: 'p3', timestamp: '2026-05-01T11:00:00Z', rating: 5, emotion: '🏄 활기', comment: '송정 서핑은 언제나 옳아요! 파도가 정말 좋았습니다.' },
-        { tripId: 'hist_2', placeId: 'p4', timestamp: '2026-05-01T19:00:00Z', rating: 5, emotion: '✨ 감동', comment: '광안대교 드론쇼는 정말 장관이었어요.' }
+        { tripId: 'hist_2', placeId: 'p4', timestamp: '2026-05-01T19:00:00Z', rating: 5, emotion: '✨ 감동', comment: '광안대교 드론쇼는 정말 장관이었어요. 잊지 못할 밤입니다.' }
       ]
     }
   ]);
@@ -89,7 +101,8 @@ export const useTripStore = defineStore('trip', () => {
         {
           day: 1,
           items: [
-            { contentId: 'c1', title: '흰여울문화마을', addr1: '부산 영도구', mapX: 129.043, mapY: 35.078, firstImage: 'https://images.unsplash.com/photo-1620050861803-34676100c598?q=80&w=800' }
+            { contentId: 'c1', title: '흰여울문화마을', addr1: '부산 영도구 영선동', mapX: 129.0434, mapY: 35.0789, firstImage: 'https://images.unsplash.com/photo-1620050861803-34676100c598?q=80&w=800' },
+            { contentId: 'c2', title: '전포 카페거리', addr1: '부산진구 전포동', mapX: 129.0632, mapY: 35.1555, firstImage: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800' }
           ]
         }
       ]
@@ -103,7 +116,15 @@ export const useTripStore = defineStore('trip', () => {
       authorImage: 'https://i.pravatar.cc/150?u=2',
       likes: 856,
       tags: ['맛집', '로컬추천', '국밥'],
-      plans: [{ day: 1, items: [] }]
+      plans: [
+        {
+          day: 1,
+          items: [
+            { contentId: 'c3', title: '해운대 소문난 암소갈비', addr1: '부산 해운대구 중동', mapX: 129.1642, mapY: 35.1612, firstImage: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800' },
+            { contentId: 'c4', title: '본전돼지국밥', addr1: '부산 동구 초량동', mapX: 129.0394, mapY: 35.1147, firstImage: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800' }
+          ]
+        }
+      ]
     }
   ]);
 
@@ -240,8 +261,8 @@ export const useTripStore = defineStore('trip', () => {
             contentTypeId: "12",
             title: item.title,
             addr1: `부산광역시 ${item.addr}`,
-            mapX: item.lng, // Use fixed valid longitude
-            mapY: item.lat, // Use fixed valid latitude
+            mapX: item.lng, 
+            mapY: item.lat, 
             firstImage: `${item.img}?auto=format&fit=crop&q=80&w=800`,
             aiMetadata: {
               time: `${14 + (idx * 2)}:00`,
