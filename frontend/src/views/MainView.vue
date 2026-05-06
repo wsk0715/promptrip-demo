@@ -39,7 +39,8 @@ const places = ref<Place[]>([])
 const tripStore = useTripStore()
 const activeTab = ref('home')
 const activeCategory = ref('전체')
-const historyFocusTrip = ref<TripResponse | null>(null)
+const historyFocusTrip = ref<any | null>(null)
+const isShareMode = ref(false)
 const selectedVisitFromMap = ref<any | null>(null)
 
 // Logic Controllers
@@ -219,7 +220,10 @@ const filteredPlaces = computed(() => {
   const districtMap = new Map<string, number>(); // districtId -> count
 
   // Prioritize places within districts
-  const candidatePlaces = [...places.value].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  // Shuffle candidates to provide discovery feel, then sort by rating slightly
+  const candidatePlaces = [...places.value]
+    .sort(() => 0.5 - Math.random())
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
   for (const place of candidatePlaces) {
     for (const district of districts.value) {
@@ -478,12 +482,13 @@ onMounted(async () => {
         :course="historyFocusTrip || tripStore.currentTrip || tripStore.pendingTrip"
         :visits="historyFocusTrip ? (historyFocusTrip as any).visits : tripStore.visitedPlaces"
         :isHistoryMode="activeWidget === 'history'"
+        :isShareMode="isShareMode"
         :historyTrips="tripStore.historyTrips"
         :initialLat="initialCoords.lat"
         :initialLng="initialCoords.lng"
         :bottomOffset="widgetHeight"
         @map-move="handleMapMove"
-        @district-click="handleDistrictClick"
+        @district-click="handleDistrictSelect"
         @place-click="handlePlaceSelect"
         @star-click="handleStarClick"
       />
@@ -608,7 +613,7 @@ onMounted(async () => {
           id="history"
           ref="historyFrameRef"
           :show="activeWidget === 'history'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; historyFocusTrip = null"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; historyFocusTrip = null; isShareMode = false"
           @height-change="handleWidgetHeightChange"
           :minHeight="5"
           :midHeight="32"
@@ -621,6 +626,7 @@ onMounted(async () => {
             @start-journey="activeWidget = 'chat'; activeTab = 'home'"
             @view-plan="activeWidget = 'directions'; activeTab = 'home'; nearbyController.snapTo('MIN')"
             @history-focus="(trip) => historyFocusTrip = trip"
+            @share-mode="(trip) => { isShareMode = true; historyFocusTrip = trip; historyController.snapTo('MIN') }"
           />
         </MapWidgetFrame>
 

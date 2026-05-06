@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useTripStore } from '../../services/tripService';
-import { Award, Share2, ChevronRight, Heart, MapPin, X, Star, Camera, Download } from 'lucide-vue-next';
+import { Award, Share2, ChevronRight, Heart, MapPin, X, Star, Camera, Download, Sparkles } from 'lucide-vue-next';
 import { formatDate, getEmotionIcon, getEmotionColor } from '../../utils/formatUtils';
 import WidgetContainer from '../common/WidgetContainer.vue';
 import BottomActionBar from '../common/BottomActionBar.vue';
@@ -9,7 +9,7 @@ import BottomActionBar from '../common/BottomActionBar.vue';
 const tripStore = useTripStore();
 const activeSubTab = ref<'mine' | 'community'>('mine');
 const selectedHistoryTrip = ref<any | null>(null);
-const emit = defineEmits(['close', 'start-journey', 'view-plan', 'history-focus']);
+const emit = defineEmits(['close', 'start-journey', 'view-plan', 'history-focus', 'share-mode']);
 
 const handleSubTabChange = (tab: 'mine' | 'community') => {
   activeSubTab.value = tab;
@@ -21,6 +21,12 @@ const handleSubTabChange = (tab: 'mine' | 'community') => {
 const handleTripClick = (trip: any) => {
   selectedHistoryTrip.value = trip;
   emit('history-focus', trip);
+};
+
+const handleShare = () => {
+  if (selectedHistoryTrip.value) {
+    emit('share-mode', selectedHistoryTrip.value);
+  }
 };
 
 const handleImport = (trip: any) => {
@@ -36,8 +42,8 @@ const getPlaceTitle = (trip: any, placeId: string) => {
 
 <template>
   <WidgetContainer padding="p-0" space="space-y-0">
+    <!-- ... (main list code) ... -->
     <template #header>
-      <!-- Tab Headers -->
       <div class="flex px-6 pt-4 gap-6 border-b border-slate-100 bg-white shadow-sm">
         <button 
           @click="handleSubTabChange('mine')"
@@ -56,11 +62,8 @@ const getPlaceTitle = (trip: any, placeId: string) => {
       </div>
     </template>
 
-    <!-- Main List Content -->
     <div class="p-6 space-y-5">
-      <!-- 1. My History List -->
       <div v-if="activeSubTab === 'mine'" class="space-y-4">
-        <!-- Empty State -->
         <div v-if="tripStore.historyTrips.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
           <div class="w-20 h-20 bg-white rounded-3xl shadow-xl shadow-indigo-100/50 flex items-center justify-center mb-6">
             <Award class="w-10 h-10 text-slate-200" />
@@ -70,7 +73,6 @@ const getPlaceTitle = (trip: any, placeId: string) => {
           <button @click="emit('start-journey')" class="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[11px] font-black shadow-lg">여행 시작하기</button>
         </div>
 
-        <!-- History Cards -->
         <div v-else class="space-y-4">
           <div 
             v-for="trip in tripStore.historyTrips" :key="trip.id"
@@ -91,7 +93,6 @@ const getPlaceTitle = (trip: any, placeId: string) => {
         </div>
       </div>
 
-      <!-- 2. Community Tab -->
       <div v-else class="space-y-6">
         <div v-for="trip in tripStore.communityTrips" :key="trip.id" class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all group">
           <div class="relative h-44">
@@ -113,49 +114,69 @@ const getPlaceTitle = (trip: any, placeId: string) => {
       </div>
     </div>
 
-    <!-- 3. Record Detail Overlay -->
+    <!-- 3. Record Detail Overlay (Magazine Style) -->
     <Transition name="slide-up">
-      <div v-if="selectedHistoryTrip" class="absolute inset-0 z-[100] bg-white flex flex-col">
-        <WidgetContainer padding="p-6" space="space-y-8">
+      <div v-if="selectedHistoryTrip" class="absolute inset-0 z-[100] bg-white flex flex-col overflow-hidden">
+        <WidgetContainer padding="p-0" space="space-y-0" class="!bg-white">
           <template #header>
-            <!-- Unified Header -->
-            <div class="px-6 py-6 flex items-center justify-between border-b border-slate-50">
-              <button @click="selectedHistoryTrip = null; emit('history-focus', null)" class="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all"><X class="w-5 h-5" /></button>
-              <div class="text-center flex-1 mx-4">
-                <span class="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] block mb-1">Trip Memoir</span>
-                <h4 class="text-lg font-black text-slate-900 truncate">{{ selectedHistoryTrip.title }}</h4>
-                <span class="text-[10px] font-bold text-slate-400">{{ formatDate(selectedHistoryTrip.completedAt) }}</span>
-              </div>
-              <button class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Share2 class="w-5 h-5" /></button>
+            <div class="px-6 py-4 flex items-center justify-between border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+              <button @click="selectedHistoryTrip = null; emit('history-focus', null)" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
+                <X class="w-6 h-6" />
+              </button>
+              <span class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em]">Personal Memoir</span>
+              <div class="w-10"></div> <!-- Spacer -->
             </div>
           </template>
 
-          <!-- Timeline Content -->
-          <div class="space-y-10 pb-32">
-            <div class="flex items-center justify-between px-2">
-              <h5 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <MapPin class="w-3.5 h-3.5" /> Visit Timeline
-              </h5>
-              <span class="text-[10px] font-black text-indigo-600">{{ selectedHistoryTrip.visits.length }} Spots 정복</span>
+          <div class="flex-1 overflow-y-auto custom-scrollbar pb-32">
+            <!-- Dramatic Hero Section -->
+            <div class="px-8 pt-12 pb-16 text-center bg-gradient-to-b from-slate-50/50 to-white">
+              <div class="inline-block px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-6 shadow-lg shadow-indigo-100">
+                {{ formatDate(selectedHistoryTrip.completedAt) }}
+              </div>
+              <h2 class="text-4xl font-black text-slate-900 leading-tight tracking-tight mb-4 break-keep">
+                {{ selectedHistoryTrip.title }}
+              </h2>
+              <div class="flex items-center justify-center gap-3">
+                <div class="h-px w-8 bg-slate-200"></div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Archived with {{ selectedHistoryTrip.visits.length }} Moments
+                </p>
+                <div class="h-px w-8 bg-slate-200"></div>
+              </div>
             </div>
-            
-            <div class="space-y-0">
-              <div v-for="(visit, idx) in selectedHistoryTrip.visits" :key="idx" class="flex gap-6">
-                <div class="flex flex-col items-center">
-                  <div class="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-lg z-10">
+
+            <!-- Memoir Timeline -->
+            <div class="px-6 space-y-16 relative">
+              <div class="absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 -translate-x-1/2 hidden sm:block"></div>
+              
+              <div v-for="(visit, idx) in selectedHistoryTrip.visits" :key="idx" class="relative">
+                <!-- Large Emotional Badge -->
+                <div class="flex flex-col items-center mb-8">
+                  <div 
+                    class="w-20 h-20 rounded-[2.5rem] bg-white border border-slate-100 shadow-xl flex items-center justify-center text-4xl mb-4 hover:scale-110 transition-transform duration-500 cursor-default"
+                  >
                     {{ getEmotionIcon(visit.emotion) }}
                   </div>
-                  <div v-if="idx < selectedHistoryTrip.visits.length - 1" class="w-0.5 flex-1 bg-slate-100 my-1"></div>
+                  <h4 class="text-xl font-black text-slate-900 tracking-tight">{{ getPlaceTitle(selectedHistoryTrip, visit.placeId) }}</h4>
                 </div>
-                <div class="flex-1 pb-10">
-                  <div class="flex justify-between items-start mb-2">
-                    <h6 class="text-base font-black text-slate-900 leading-tight">{{ getPlaceTitle(selectedHistoryTrip, visit.placeId) }}</h6>
-                    <div class="flex gap-0.5">
-                      <Star v-for="i in 5" :key="i" class="w-3 h-3" :class="i <= visit.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-100'" />
+                
+                <!-- Comment Card -->
+                <div class="relative px-4">
+                  <div class="bg-slate-50 rounded-[2rem] p-8 text-center border border-slate-100/50 relative overflow-hidden group">
+                    <Sparkles class="absolute top-4 right-4 w-5 h-5 text-indigo-200 group-hover:rotate-12 transition-transform" />
+                    
+                    <div class="flex justify-center gap-1 mb-4">
+                      <Star v-for="i in 5" :key="i" class="w-3.5 h-3.5" :class="i <= visit.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'" />
                     </div>
-                  </div>
-                  <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100/50">
-                    <p class="text-xs font-bold text-slate-500 leading-relaxed italic">"{{ visit.comment }}"</p>
+
+                    <p class="text-lg font-bold text-slate-700 leading-relaxed italic font-serif">
+                      "{{ visit.comment }}"
+                    </p>
+                    
+                    <div class="mt-6 pt-6 border-t border-slate-200/50">
+                      <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Memory Reflected</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -163,13 +184,15 @@ const getPlaceTitle = (trip: any, placeId: string) => {
           </div>
 
           <template #footer>
-            <BottomActionBar 
-              primaryText="기록 저장하기"
-              :primaryIcon="Download"
-              :secondaryIcon="Share2"
-              @primary-click="() => console.log('Save')"
-              @secondary-click="() => console.log('Share')"
-            />
+            <div class="absolute bottom-0 inset-x-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-50 z-30">
+              <button 
+                @click="handleShare"
+                class="w-full py-5 bg-slate-900 text-white rounded-[2rem] text-sm font-black shadow-2xl shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Share2 class="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                여정 공유하기
+              </button>
+            </div>
           </template>
         </WidgetContainer>
       </div>

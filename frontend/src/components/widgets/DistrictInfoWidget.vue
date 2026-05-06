@@ -16,8 +16,10 @@ const props = defineProps<{
 const emit = defineEmits(['addToCourse', 'place-select'])
 
 const residentPlaces = computed(() => {
-  return tripStore.filterPlacesByDistrict(props.district, props.places)
-})
+  const filtered = tripStore.filterPlacesByDistrict(props.district, props.places);
+  // Randomly shuffle to provide variety
+  return [...filtered].sort(() => 0.5 - Math.random()).slice(0, 8);
+});
 </script>
 
 <template>

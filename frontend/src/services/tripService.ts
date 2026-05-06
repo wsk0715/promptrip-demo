@@ -40,7 +40,6 @@ export const useTripStore = defineStore('trip', () => {
   const error = ref<string | null>(null);
   const prompt = ref('');
   const recentTrips = ref<TripResponse[]>([]);
-  const historyTrips = ref<HistoryTrip[]>([]);
   const visitedPlaces = ref<VisitRecord[]>([]);
   const pendingVisitPlace = ref<Place | null>(null);
   const preferences = ref({
@@ -49,7 +48,64 @@ export const useTripStore = defineStore('trip', () => {
     traditionTrend: 0.5
   });
 
-  const communityTrips = ref<CommunityTrip[]>([]);
+  const historyTrips = ref<HistoryTrip[]>([
+    {
+      id: 'hist_1',
+      title: '🌸 부산 벚꽃 엔딩 투어',
+      summary: '해운대 달맞이길부터 남천동 벚꽃터널까지, 부산의 봄을 온전히 만끽했던 하루입니다.',
+      totalDuration: '5:30',
+      completedAt: '2026-04-12T18:30:00Z',
+      plans: [{ day: 1, items: [] }],
+      visits: [
+        { tripId: 'hist_1', placeId: 'p1', timestamp: '2026-04-12T14:00:00Z', rating: 5, emotion: '🌸 설렘', comment: '벚꽃이 정말 흐드러지게 피었어요. 내년에 또 오고 싶네요.' },
+        { tripId: 'hist_1', placeId: 'p2', timestamp: '2026-04-12T16:30:00Z', rating: 4, emotion: '☕ 여유', comment: '카페에서 바라보는 바다 전망이 예술이었습니다.' }
+      ]
+    },
+    {
+      id: 'hist_2',
+      title: '🌊 부산 바다 정복기',
+      summary: '송정에서 시작해 광안리 야경으로 마무리한 완벽한 해안선 투어입니다.',
+      totalDuration: '8:00',
+      completedAt: '2026-05-01T21:00:00Z',
+      plans: [{ day: 1, items: [] }],
+      visits: [
+        { tripId: 'hist_2', placeId: 'p3', timestamp: '2026-05-01T11:00:00Z', rating: 5, emotion: '🏄 활기', comment: '송정 서핑은 언제나 옳아요! 파도가 정말 좋았습니다.' },
+        { tripId: 'hist_2', placeId: 'p4', timestamp: '2026-05-01T19:00:00Z', rating: 5, emotion: '✨ 감동', comment: '광안대교 드론쇼는 정말 장관이었어요.' }
+      ]
+    }
+  ]);
+
+  const communityTrips = ref<CommunityTrip[]>([
+    {
+      id: 'comm_1',
+      title: '📸 인스타 감성 부산 핫플',
+      summary: '전포동 카페거리부터 영도 흰여울마을까지, 사진 찍기 좋은 곳만 모았습니다.',
+      totalDuration: '6:45',
+      authorName: 'TravelLog',
+      authorImage: 'https://i.pravatar.cc/150?u=1',
+      likes: 1240,
+      tags: ['감성', '인생샷', '부산핫플'],
+      plans: [
+        {
+          day: 1,
+          items: [
+            { contentId: 'c1', title: '흰여울문화마을', addr1: '부산 영도구', mapX: 129.043, mapY: 35.078, firstImage: 'https://images.unsplash.com/photo-1620050861803-34676100c598?q=80&w=800' }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'comm_2',
+      title: '🍜 로컬이 추천하는 부산 미식',
+      summary: '관광객용 식당 말고, 진짜 부산 사람들이 줄 서서 먹는 맛집 투어입니다.',
+      totalDuration: '4:20',
+      authorName: 'BusanLocal',
+      authorImage: 'https://i.pravatar.cc/150?u=2',
+      likes: 856,
+      tags: ['맛집', '로컬추천', '국밥'],
+      plans: [{ day: 1, items: [] }]
+    }
+  ]);
 
   // API Methods
   const fetchCommunityTrips = async () => {
@@ -116,66 +172,83 @@ export const useTripStore = defineStore('trip', () => {
     currentTrip.value = null;
     pendingTrip.value = null;
 
-    logs.value.push("사용자 취향 분석 중...");
-    await new Promise(r => setTimeout(r, 800));
-    logs.value.push(`취향 벡터 계산 완료 (${prompt.value})`);
-    await new Promise(r => setTimeout(r, 600));
-    logs.value.push("주변 데이터 및 저매출 구역 필터링 중...");
-    await new Promise(r => setTimeout(r, 1000));
+    const steps = [
+      "사용자 취향 벡터 분석 중...",
+      `"${query}" 기반 로컬 데이터 필터링...`,
+      "저매출 구역 가중치 최적화 완료",
+      "AI 에이전트 맞춤형 코스 구성 완료!"
+    ];
+
+    for (const step of steps) {
+      logs.value.push(step);
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
+    }
+
+    // Rich Pool of Places with VALID Coordinates
+    const placePool = {
+      healing: [
+        { title: '해운대 블루라인파크', addr: '해운대구', img: 'https://images.unsplash.com/photo-1598124808304-40656a81f337', lat: 35.1592, lng: 129.1762, reason: '푸른 바다를 따라 달리는 낭만적인 해변 열차입니다.' },
+        { title: '오륙도 스카이워크', addr: '남구', img: 'https://images.unsplash.com/photo-1620050861803-34676100c598', lat: 35.1018, lng: 129.1245, reason: '투명한 유리 바닥 아래로 펼쳐지는 아찔한 바다 비경입니다.' },
+        { title: '이기대 수변공원', addr: '남구', img: 'https://images.unsplash.com/photo-1541018939203-36eeab6d5721', lat: 35.1242, lng: 129.1154, reason: '해안 절벽을 따라 걷는 부산 최고의 트레킹 코스입니다.' }
+      ],
+      foodie: [
+        { title: '부평 깡통시장', addr: '중구', img: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93', lat: 35.1022, lng: 129.0274, reason: '부산의 온갖 먹거리가 모여있는 활기찬 전통시장입니다.' },
+        { title: '민락 수변공원', addr: '수영구', img: 'https://images.unsplash.com/photo-1541018939203-36eeab6d5721', lat: 35.1552, lng: 129.1352, reason: '광안대교 야경을 보며 신선한 회를 즐길 수 있는 로컬 성지입니다.' },
+        { title: '전포 카페거리', addr: '부산진구', img: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93', lat: 35.1555, lng: 129.0632, reason: '개성 넘치는 카페와 맛집들이 즐비한 부산의 핫플레이스입니다.' }
+      ],
+      night: [
+        { title: '더베이 101', addr: '해운대구', img: 'https://images.unsplash.com/photo-1541018939203-36eeab6d5721', lat: 35.1565, lng: 129.1552, reason: '마린시티의 화려한 야경이 물결에 비치는 환상적인 장소입니다.' },
+        { title: '황령산 봉수대', addr: '남구', img: 'https://images.unsplash.com/photo-1620050861803-34676100c598', lat: 35.1587, lng: 129.0825, reason: '부산의 동서남북 야경을 한눈에 담을 수 있는 최고의 조망점입니다.' },
+        { title: '광안리 해수욕장', addr: '수영구', img: 'https://images.unsplash.com/photo-1598124808304-40656a81f337', lat: 35.1532, lng: 129.1189, reason: '화려한 광안대교 조명과 파도 소리가 어우러진 낭만적인 밤바다입니다.' }
+      ]
+    };
+
+    // Randomized selection logic
+    let selectedPool = [...placePool.healing, ...placePool.foodie, ...placePool.night];
+    let titlePrefix = "부산 종합";
     
-    logs.value.push("최종 여행 코스 구성 완료!");
+    if (query.includes('바다') || query.includes('산책') || query.includes('힐링')) {
+      selectedPool = placePool.healing;
+      titlePrefix = "🌊 바다 힐링";
+    } else if (query.includes('먹거리') || query.includes('카페') || query.includes('맛집')) {
+      selectedPool = placePool.foodie;
+      titlePrefix = "🍜 부산 미식";
+    } else if (query.includes('야경') || query.includes('밤')) {
+      selectedPool = placePool.night;
+      titlePrefix = "✨ 시티 나이트";
+    }
+
+    // Shuffle and pick 2-3 items
+    const shuffled = selectedPool.sort(() => 0.5 - Math.random());
+    const selectedItems = shuffled.slice(0, Math.min(shuffled.length, 3));
+
+    const summaries = [
+      "사용자님의 취향을 반영하여 구성한 부산의 매력을 가득 담은 코스입니다.",
+      "번잡함을 피해 부산의 진면목을 발견할 수 있는 특별한 여정을 제안합니다.",
+      "짧은 시간 동안 부산의 정취를 가장 효율적으로 느낄 수 있는 알찬 코스입니다."
+    ];
 
     pendingTrip.value = {
-      title: query.length > 10 ? `${query.substring(0, 10)}... 코스` : `${query} 코스`,
-      summary: "시원한 바다 바람을 맞으며 해운대 해변을 걷고, 더베이 101의 화려한 야경을 즐기는 완벽한 부산 반나절 코스입니다.",
-      totalDuration: "3:30",
+      title: `${titlePrefix} 탐방 코스`,
+      summary: summaries[Math.floor(Math.random() * summaries.length)],
+      totalDuration: `${Math.floor(Math.random() * 2) + 3}:${Math.floor(Math.random() * 6) * 10}`,
       plans: [
         {
           day: 1,
-          items: [
-            {
-              contentId: "ai_1",
-              contentTypeId: "12",
-              title: "해운대 해수욕장 & 블루라인파크",
-              addr1: "부산광역시 해운대구 달맞이길62번길 13",
-              mapX: 129.1762,
-              mapY: 35.1592,
-              firstImage: "https://images.unsplash.com/photo-1598124808304-40656a81f337?auto=format&fit=crop&q=80&w=800",
-              aiMetadata: {
-                time: "15:00",
-                reason: "해변 열차를 타고 부산의 푸른 바다를 가장 가까이서 감상할 수 있습니다.",
-                avgStay: "1시간"
-              }
-            },
-            {
-              contentId: "ai_2",
-              contentTypeId: "12",
-              title: "더베이 101",
-              addr1: "부산광역시 해운대구 동백로 52",
-              mapX: 129.1552,
-              mapY: 35.1565,
-              firstImage: "https://images.unsplash.com/photo-1541018939203-36eeab6d5721?auto=format&fit=crop&q=80&w=800",
-              aiMetadata: {
-                time: "16:30",
-                reason: "마린시티의 화려한 스카이라인을 배경으로 인생샷을 남기기 좋습니다.",
-                avgStay: "1시간"
-              }
-            },
-            {
-              contentId: "ai_3",
-              contentTypeId: "39",
-              title: "달맞이길 감성 카페",
-              addr1: "부산광역시 해운대구 달맞이길",
-              mapX: 129.1725,
-              mapY: 35.1610,
-              firstImage: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800",
-              aiMetadata: {
-                time: "18:00",
-                reason: "사용자님의 취향에 맞는 조용하고 바다전망 카페입니다.",
-                avgStay: "1시간"
-              }
+          items: selectedItems.map((item, idx) => ({
+            contentId: `ai_${Math.random().toString(36).substr(2, 9)}`,
+            contentTypeId: "12",
+            title: item.title,
+            addr1: `부산광역시 ${item.addr}`,
+            mapX: item.lng, // Use fixed valid longitude
+            mapY: item.lat, // Use fixed valid latitude
+            firstImage: `${item.img}?auto=format&fit=crop&q=80&w=800`,
+            aiMetadata: {
+              time: `${14 + (idx * 2)}:00`,
+              reason: item.reason,
+              avgStay: "1시간 30분"
             }
-          ]
+          }))
         }
       ]
     };
@@ -192,7 +265,7 @@ export const useTripStore = defineStore('trip', () => {
         completedAt: '',
         visits: []
       };
-      pendingTrip.value = null; // Clear pending trip once it becomes current
+      pendingTrip.value = null; 
     }
   };
 
@@ -209,18 +282,19 @@ export const useTripStore = defineStore('trip', () => {
     if (currentTrip.value.visits.length === allPlaces.length) {
       currentTrip.value.completedAt = new Date().toISOString();
       historyTrips.value.unshift({ ...currentTrip.value });
-      currentTrip.value = null; // Clear active trip upon completion
-      pendingTrip.value = null; // Ensure pending trip is also cleared
+      currentTrip.value = null; 
+      pendingTrip.value = null; 
     }
   };
 
   const quickRecordVisit = (placeId: string) => {
     if (!currentTrip.value || isPlaceVisited(placeId)) return;
+    const emotions = ['😊 만족', '✨ 감동', '🌊 시원함', '🔥 활기', '😋 맛있음'];
     recordVisit({
       placeId,
-      rating: 5,
-      emotion: '😊 좋아요',
-      comment: '데모 방문 처리 완료!'
+      rating: 4 + Math.floor(Math.random() * 2),
+      emotion: emotions[Math.floor(Math.random() * emotions.length)],
+      comment: '오늘의 부산 여행 중 가장 기억에 남는 순간이네요!'
     });
   };
 
