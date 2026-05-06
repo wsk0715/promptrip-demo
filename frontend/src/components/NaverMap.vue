@@ -137,11 +137,10 @@ const drawCourse = () => {
           icon: {
             content: isVisited ? `
               <div class="relative group cursor-pointer animate-in zoom-in duration-500">
-                <div class="w-10 h-10 flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" class="w-8 h-8 drop-shadow-[0_0_8px_${starColor}]" fill="${starColor}">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"/>
+                <div class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                </div>
                 </div>
               </div>
             ` : `
@@ -248,14 +247,16 @@ const updateUserLocation = (lat: number, lng: number) => {
 const setCenter = (lat: number, lng: number, zoom?: number) => {
   if (!map) return
   const center = new naver.maps.LatLng(lat, lng)
-  map.panTo(center) // Smooth move
   
   if (zoom !== undefined) {
     map.setZoom(zoom)
   }
 
-  // Apply visual offset for overlays
+  // Snap directly to center to avoid animation jitter
+  map.setCenter(center)
+  
   if (props.bottomOffset) {
+    // Apply offset immediately after snapping
     map.panBy(new naver.maps.Point(0, props.bottomOffset / 2))
   }
   

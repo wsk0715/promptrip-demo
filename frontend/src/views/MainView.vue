@@ -154,6 +154,11 @@ const handleExploreClick = () => {
 
 const handlePlaceSelect = (place: Place) => {
   selectedPlace.value = place
+  // If we are in directions mode, don't switch to place widget, just center the map
+  if (activeWidget.value === 'directions') {
+    mapRef.value?.setCenter(place.mapY, place.mapX)
+    return
+  }
   activeWidget.value = 'place'
   placeController.snapTo('MID')
 }
@@ -273,7 +278,11 @@ const handleAddToCourse = (place: Place) => {
 }
 
 const handleTripUpdate = (course: TripResponse) => {
-  activeWidget.value = 'nearby'
+  activeWidget.value = 'directions'
+  activeTab.value = 'home'
+  setTimeout(() => {
+    routeController.snapTo('MID')
+  }, 50)
   console.log('Navigation started with course:', course.title)
 }
 
