@@ -40,7 +40,7 @@ const handleConfirmTrip = () => {
     <div class="flex-1 overflow-y-auto p-6 custom-scrollbar pb-24">
       <div class="px-1 -mt-2 mb-6">
         <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-          🎯 {{ trip.title }}
+          {{ trip.title }}
         </h3>
         <p class="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
           {{ trip.summary }}

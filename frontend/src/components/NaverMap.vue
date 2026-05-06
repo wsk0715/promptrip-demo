@@ -10,7 +10,8 @@ const props = defineProps<{
   places?: Place[]
   initialLat: number
   initialLng: number
-  visits?: any[] // Add visits prop for history/constellation mode
+  visits?: any[]
+  bottomOffset?: number
 }>()
 
 const emit = defineEmits(['map-move', 'district-click', 'place-click'])
@@ -81,12 +82,21 @@ const drawPlaces = () => {
       title: place.title,
       icon: {
         content: `
-          <div class="flex items-center gap-1.5 ${theme.bg} ${theme.text} px-2.5 py-1.5 rounded-full shadow-xl border border-white/20 hover:scale-110 hover:z-[1000] transition-all cursor-pointer group active:scale-95">
-            <div class="w-1.5 h-1.5 ${theme.dot} rounded-full shadow-sm"></div>
-            <span class="text-[11px] font-semibold whitespace-nowrap tracking-tight">${place.title}</span>
+          <div class="flex flex-col items-center group cursor-pointer">
+            <!-- Place Dot -->
+            <div class="w-5 h-5 ${theme.bg} rounded-full border-2 border-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] flex items-center justify-center">
+              <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+            </div>
+            <!-- Place Label -->
+            <div class="mt-px leading-none">
+              <span class="text-[11px] font-bold text-slate-800 whitespace-nowrap tracking-tight"
+                style="text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 2px #fff; line-height: 1;">
+                ${place.title}
+              </span>
+            </div>
           </div>
         `,
-        anchor: new naver.maps.Point(30, 15)
+        anchor: new naver.maps.Point(20, 10)
       }
     })
 
@@ -132,24 +142,18 @@ const drawCourse = () => {
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"/>
                   </svg>
                 </div>
-                <div class="absolute -top-1 -right-1">
-                  <div class="w-3 h-3 bg-white rounded-full animate-ping opacity-70"></div>
                 </div>
               </div>
             ` : `
               <div class="relative group cursor-pointer">
-                <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg text-[11px] group-hover:scale-110 group-hover:bg-indigo-700 transition-all">
+                <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg text-[11px] group-hover:scale-110 transition-all">
                   ${index + 1}
                 </div>
-                ${item.aiMetadata ? `
-                <div class="absolute -top-1 -right-1">
-                  <div class="w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
-                </div>` : ''}
               </div>
             `,
-            anchor: new naver.maps.Point(isVisited ? 20 : 16, isVisited ? 20 : 16)
+            anchor: new naver.maps.Point(16, 16)
           },
-          zIndex: isVisited ? 300 : 200
+          zIndex: 200
         })
         markers.value.push(marker)
 
@@ -173,31 +177,37 @@ const drawCourse = () => {
     
     const bounds = new naver.maps.LatLngBounds(path[0], path[0])
     path.forEach(p => bounds.extend(p))
-    map.panToBounds(bounds)
+    map.fitBounds(bounds)
+    // Apply offset after fitting bounds to keep the course above overlays
+    if (props.bottomOffset) {
+      map.panBy(new naver.maps.Point(0, props.bottomOffset / 2))
+    }
 
     // Add distance/time labels between points
     for (let i = 0; i < path.length - 1; i++) {
-      const p1 = path[i]
-      const p2 = path[i+1]
-      const midLat = (p1.lat() + p2.lat()) / 2
-      const midLng = (p1.lng() + p2.lng()) / 2
-      
-      const label = new naver.maps.Marker({
-        position: new naver.maps.LatLng(midLat, midLng),
-        map: map,
-        icon: {
-          content: `
-            <div class="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-indigo-100 shadow-sm flex items-center gap-1.5 whitespace-nowrap">
-              <span class="text-[9px] font-bold text-indigo-600">도보 12분</span>
-              <div class="w-[1px] h-2 bg-slate-200"></div>
-              <span class="text-[9px] font-medium text-slate-500">850m</span>
-            </div>
-          `,
-          anchor: new naver.maps.Point(40, 10)
-        },
-        zIndex: 50
-      })
-      markers.value.push(label)
+            // Simple distance estimation for the label
+            const midLat = (path[i].lat() + path[i+1].lat()) / 2;
+            const midLng = (path[i].lng() + path[i+1].lng()) / 2;
+            const dist = Math.sqrt(Math.pow(path[i].lat() - path[i+1].lat(), 2) + Math.pow(path[i].lng() - path[i+1].lng(), 2)) * 111000;
+            const distText = dist < 1000 ? `${Math.round(dist)}m` : `${(dist/1000).toFixed(1)}km`;
+            const timeText = dist < 1000 ? `${Math.round(dist/80)}분` : `${Math.round((dist/1000)*2.5)}분`;
+
+            const label = new naver.maps.Marker({
+              position: new naver.maps.LatLng(midLat, midLng),
+              map: map,
+              icon: {
+                content: `
+                  <div class="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full border border-slate-100 shadow-sm flex items-center gap-1.5 origin-center">
+                  <span class="text-[10px] font-black text-indigo-600">${timeText}</span>
+                  <div class="w-px h-2 bg-slate-200"></div>
+                  <span class="text-[10px] font-medium text-slate-500">${distText}</span>
+                </div>
+                `,
+                anchor: new naver.maps.Point(40, 10)
+              },
+              zIndex: 50
+            })
+            markers.value.push(label)
     }
   }
 }
@@ -239,15 +249,28 @@ const setCenter = (lat: number, lng: number, zoom?: number) => {
   if (!map) return
   const center = new naver.maps.LatLng(lat, lng)
   map.panTo(center) // Smooth move
+  
   if (zoom !== undefined) {
     map.setZoom(zoom)
   }
+
+  // Apply visual offset for overlays
+  if (props.bottomOffset) {
+    map.panBy(new naver.maps.Point(0, props.bottomOffset / 2))
+  }
+  
   updateUserLocation(lat, lng)
+}
+
+const panByOffset = (x: number, y: number) => {
+  if (!map) return
+  map.panBy(new naver.maps.Point(x, y))
 }
 
 defineExpose({
   setCenter,
-  updateUserLocation
+  updateUserLocation,
+  panByOffset
 })
 
 watch([() => props.districts, () => props.course, () => props.places, () => props.visits], () => {

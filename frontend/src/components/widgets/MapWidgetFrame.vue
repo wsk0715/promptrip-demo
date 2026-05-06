@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 const props = defineProps<{
+  id: string
   show: boolean
   persistent?: boolean
   minHeight: number // in rem
@@ -11,10 +12,27 @@ const props = defineProps<{
   icon?: any // New prop for cute icons
 }>()
 
-const emit = defineEmits(['close'])
+
+const emit = defineEmits(['close', 'height-change'])
 
 const widgetRef = ref<HTMLElement | null>(null)
 const currentHeight = ref(props.midHeight)
+
+// Emit height changes for map centering
+watch(currentHeight, (newVal) => {
+  if (props.show) {
+    emit('height-change', { id: props.id, height: newVal * getRootFontSize() })
+  }
+})
+
+watch(() => props.show, (show) => {
+  if (show) {
+    emit('height-change', { id: props.id, height: currentHeight.value * getRootFontSize() })
+  } else {
+    emit('height-change', { id: props.id, height: 0 })
+  }
+})
+
 const isDragging = ref(false)
 const startY = ref(0)
 const startHeight = ref(0)

@@ -12,6 +12,7 @@ export interface VisitRecord {
   emotion: string;
   comment: string;
   photo?: string;
+  color?: string;
 }
 
 export interface HistoryTrip extends TripResponse {
@@ -39,6 +40,7 @@ export const useTripStore = defineStore('trip', () => {
   const recentTrips = ref<TripResponse[]>([]);
   const historyTrips = ref<HistoryTrip[]>([]);
   const visitedPlaces = ref<VisitRecord[]>([]);
+  const pendingVisitPlace = ref<Place | null>(null); // Place currently being reviewed
   const preferences = ref({
     natureCity: 0.5, // 0: Nature, 1: City
     healingParty: 0.5, // 0: Healing, 1: Party
@@ -113,24 +115,30 @@ export const useTripStore = defineStore('trip', () => {
     currentTrip.value = null;
     pendingTrip.value = null;
 
-    const steps = [
-      "사용자 취향 분석 중...",
-      `취향 벡터 계산 완료 (자연-도시: ${preferences.value.natureCity.toFixed(1)})`,
-      "부산 해운대구 주변 저매출 구역 데이터 조회 중...",
-      "안티-허브 추천 알고리즘 가동...",
-      "최적의 이동 동선 계산 중...",
-      "맞춤형 여행 코스 생성 완료!"
-    ];
-
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-      logs.value.push(step);
-    }
+    logs.value.push("사용자 취향 분석 중...");
+    await new Promise(r => setTimeout(r, 800));
+    logs.value.push(`취향 벡터 계산 완료 (${prompt.value})`);
+    await new Promise(r => setTimeout(r, 600));
+    logs.value.push("주변 데이터 및 저매출 구역 필터링 중...");
+    await new Promise(r => setTimeout(r, 1000));
+    
+    // Dynamic mock logs
+    const dist1 = (0.5 + Math.random() * 1.5).toFixed(1);
+    const time1 = Math.round(parseFloat(dist1) * 2.5 + 5);
+    logs.value.push(`안티-허브 추천 구역 탐색 완료 (반경 ${dist1}km 내)`);
+    await new Promise(r => setTimeout(r, 700));
+    
+    const totalDist = (3 + Math.random() * 7).toFixed(1);
+    const totalTime = Math.round(parseFloat(totalDist) * 3 + 15);
+    logs.value.push(`최적 이동 동선 산출 중 (총 ${totalDist}km, 약 ${totalTime}분 예상)`);
+    await new Promise(r => setTimeout(r, 1200));
+    
+    logs.value.push("최종 여행 코스 구성 완료!");
 
     pendingTrip.value = {
       title: query.length > 10 ? `${query.substring(0, 10)}... 코스` : `${query} 코스`,
       summary: "시원한 바다 바람을 맞으며 해운대 해변을 걷고, 더베이 101의 화려한 야경을 즐기는 완벽한 부산 반나절 코스입니다.",
-      totalDuration: "약 3시간 30분",
+      totalDuration: "3:30",
       plans: [
         {
           day: 1,
@@ -254,6 +262,15 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
+  const reorderPendingTrip = (oldIndex: number, newIndex: number) => {
+    if (pendingTrip.value && pendingTrip.value.plans.length > 0) {
+      const items = pendingTrip.value.plans[0].items;
+      if (oldIndex < 0 || oldIndex >= items.length || newIndex < 0 || newIndex >= items.length) return;
+      const [movedItem] = items.splice(oldIndex, 1);
+      items.splice(newIndex, 0, movedItem);
+    }
+  };
+
   const addPlaceToPending = (place: Place) => {
     if (!pendingTrip.value) {
       // Create a basic trip structure if none exists
@@ -284,6 +301,30 @@ export const useTripStore = defineStore('trip', () => {
     error.value = null;
     prompt.value = '';
   };
+  // Re-trigger recommendation with the current prompt
+  const reRecommend = async () => {
+    if (!prompt.value) return;
+    await startPlanning(prompt.value);
+  };
+
+  // Replace a specific item with an alternative place (Mock logic for now)
+  const replaceItemWithAlternative = (index: number) => {
+    if (!pendingTrip.value || !pendingTrip.value.plans[0]) return;
+    
+    const items = pendingTrip.value.plans[0].items;
+    if (items[index]) {
+      const alternatives = [
+        { title: '근처 다른 카페', addr1: '부산광역시 해운대구 우동', mapX: 129.159, mapY: 35.158 },
+        { title: '숨겨진 조망 명소', addr1: '부산광역시 해운대구 중동', mapX: 129.165, mapY: 35.162 }
+      ];
+      const newItem = {
+        ...items[index],
+        ...alternatives[Math.floor(Math.random() * alternatives.length)],
+        contentId: `alt-${Date.now()}`
+      };
+      items[index] = newItem;
+    }
+  };
 
   return {
     currentTrip,
@@ -302,7 +343,10 @@ export const useTripStore = defineStore('trip', () => {
     recordVisit,
     isPlaceVisited,
     removeItemFromPending,
+    reorderPendingTrip,
     addPlaceToPending,
+    reRecommend,
+    replaceItemWithAlternative,
     resetPlanner,
     stopNavigation,
     quickRecordVisit,

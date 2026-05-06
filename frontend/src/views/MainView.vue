@@ -12,7 +12,8 @@ import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
 import HistoryWidget from '../components/widgets/HistoryWidget.vue'
 import VisitAuthModal from '../components/widgets/VisitAuthModal.vue'
 import MyPageWidget from '../components/widgets/MyPageWidget.vue'
-import { Sparkles, Star, Search, Navigation, Map, User, Compass, MapPin, Plane, RotateCcw } from 'lucide-vue-next'
+import ReviewModal from '../components/widgets/ReviewModal.vue'
+import { Sparkles, Star, Search, Navigation, Map as MapIcon, User, Compass, MapPin, Plane, RotateCcw } from 'lucide-vue-next'
 import { getRecommendedDistricts } from '../api/districtApi'
 import { getNearbyPlaces } from '../api/tourApi'
 import { useTripStore } from '../services/tripService'
@@ -28,6 +29,8 @@ const routeFrameRef = ref<any>(null)
 const nearbyFrameRef = ref<any>(null)
 const historyFrameRef = ref<any>(null)
 const myFrameRef = ref<any>(null)
+const placeFrameRef = ref<any>(null)
+const districtFrameRef = ref<any>(null)
 const searchQuery = ref('')
 const districts = ref<District[]>([])
 const places = ref<Place[]>([])
@@ -41,6 +44,8 @@ const routeController = useWidgetController(routeFrameRef)
 const nearbyController = useWidgetController(nearbyFrameRef)
 const historyController = useWidgetController(historyFrameRef)
 const myController = useWidgetController(myFrameRef)
+const placeController = useWidgetController(placeFrameRef)
+const districtController = useWidgetController(districtFrameRef)
 
 // Expose icons for template bindings
 const icons = {
@@ -68,7 +73,20 @@ const isSearchFilterInitial = ref(false)
 const initialCoords = ref({ lat: 35.1587, lng: 129.1604 }) // Fixed Busan Haeundae
 const userLocation = ref({ lat: 35.1587, lng: 129.1604 })
 const showVisitAuth = ref(false)
+const showReviewModal = ref(false)
 const nearPlace = ref<any>(null)
+const lastWidgetHeight = ref(0)
+
+const handleWidgetHeightChange = ({ id, height }: { id: string, height: number }) => {
+  // Only respond to the current active widget or nearby (if it's the primary one shown)
+  if (id !== activeWidget.value) return
+  
+  if (!mapRef.value) return
+  const delta = height - lastWidgetHeight.value
+  // Pan map by half of the height change to maintain visual center
+  mapRef.value.panByOffset(0, delta / 2)
+  lastWidgetHeight.value = height
+}
 
 // Mapping labels to Tour API contentTypeId
 const categoryMap: Record<string, string> = {
@@ -127,21 +145,23 @@ const handleExploreClick = () => {
     // Toggle height only if already in nearby
     const current = nearbyController.getCurrentLevel()
     if (current === 'MIN') {
-      nearbyController.snapTo('MAX')
+      nearbyController.snapTo('MID')
     } else {
       nearbyController.snapTo('MIN')
     }
   }
 }
 
-const handleDistrictSelect = (district: District) => {
-  selectedDistrict.value = district
-  activeWidget.value = 'district'
-}
-
 const handlePlaceSelect = (place: Place) => {
   selectedPlace.value = place
   activeWidget.value = 'place'
+  placeController.snapTo('MID')
+}
+
+const handleDistrictSelect = (district: District) => {
+  selectedDistrict.value = district
+  activeWidget.value = 'district'
+  districtController.snapTo('MID')
 }
 
 
@@ -160,16 +180,51 @@ const selectCategory = (cat: string) => {
   activeCategory.value = cat
 }
 
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 const filteredPlaces = computed(() => {
-  // Hide nearby places when in directions mode or actively traveling to focus on the route
   if (activeWidget.value === 'directions' || !!tripStore.currentTrip) {
-    return []
+    return [];
   }
   
-  if (activeCategory.value === '전체') return places.value
-  const catCode = categoryMap[activeCategory.value]
-  return places.value.filter(p => p.contentTypeId === catCode)
-})
+  if (districts.value.length === 0) return places.value;
+
+  // Group places by district (Only 1-2 per district)
+  const curatedPlaces: Place[] = [];
+  const districtMap = new Map<string, number>(); // districtId -> count
+
+  // Prioritize places within districts
+  const candidatePlaces = [...places.value].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+  for (const place of candidatePlaces) {
+    for (const district of districts.value) {
+      const dist = calculateDistance(district.lat, district.lng, place.mapY, place.mapX);
+      
+      // If within district radius (or slightly more)
+      if (dist <= district.radius * 1.2) {
+        const count = districtMap.get(district.id) || 0;
+        if (count < 2) { // Limit to 2 places per district
+          curatedPlaces.push(place);
+          districtMap.set(district.id, count + 1);
+          break; // Found its home district
+        }
+      }
+    }
+  }
+
+  // Filter by category if needed
+  if (activeCategory.value === '전체') return curatedPlaces;
+  const catCode = categoryMap[activeCategory.value];
+  return curatedPlaces.filter(p => p.contentTypeId === catCode);
+});
 
 const goToCurrentLocation = () => {
   mapRef.value?.setCenter(initialCoords.value.lat, initialCoords.value.lng)
@@ -250,9 +305,27 @@ const checkProximity = () => {
   })
 }
 
-const handleVisitSuccess = () => {
+const handleVisitSuccess = (placeId: string) => {
   showVisitAuth.value = false
-  nearPlace.value = null
+  const place = tripStore.currentTrip?.plans.flatMap(p => p.items).find(i => i.contentId === placeId)
+  if (place) {
+    tripStore.pendingVisitPlace = place
+    showReviewModal.value = true
+  }
+}
+
+const handleReviewSubmit = (review: any) => {
+  if (tripStore.pendingVisitPlace) {
+    tripStore.recordVisit({
+      placeId: tripStore.pendingVisitPlace.contentId,
+      emotion: review.emotion,
+      comment: review.text,
+      color: review.color,
+      rating: 5
+    })
+    showReviewModal.value = false
+    tripStore.pendingVisitPlace = null
+  }
 }
 
 // Mock GPS Simulator
@@ -374,13 +447,14 @@ onMounted(async () => {
           :visits="tripStore.currentTrip?.visits || []"
           :initialLat="initialCoords.lat"
           :initialLng="initialCoords.lng"
+          :bottomOffset="lastWidgetHeight"
           @map-move="handleMapMove"
           @district-click="handleDistrictSelect"
           @place-click="handlePlaceSelect"
         />
 
         <!-- Side Buttons -->
-        <div class="absolute right-4 bottom-[6.5rem] z-30 flex flex-col gap-3">
+        <div class="absolute right-4 bottom-[4rem] z-30 flex flex-col gap-3">
           <button 
             @click="goToCurrentLocation"
             class="w-12 h-12 bg-white text-indigo-600 rounded-2xl shadow-lg flex items-center justify-center active:scale-90 transition-all border border-slate-100"
@@ -393,26 +467,34 @@ onMounted(async () => {
         
         <!-- 1. Nearby Widget (Default/Background) -->
         <MapWidgetFrame 
+          id="nearby"
           ref="nearbyFrameRef"
           :show="activeWidget === 'nearby'" 
-          :minHeight="2.5" 
-          :midHeight="10" 
-          :maxHeight="24"
-          :persistent="true"
+          :minHeight="5" 
+          :midHeight="32" 
+          :maxHeight="42"
+          @height-change="handleWidgetHeightChange"
           title="주변 장소"
           :icon="icons.Compass"
         >
-          <NearbyWidget :places="filteredPlaces" />
+          <NearbyWidget 
+            :places="filteredPlaces" 
+            :districts="districts"
+            @select-district="handleDistrictSelect"
+            @select-place="handlePlaceSelect"
+          />
         </MapWidgetFrame>
 
         <!-- 2. AI Planner Widget (Generator) -->
         <MapWidgetFrame 
+          id="chat"
           ref="chatFrameRef"
           :show="activeWidget === 'chat'" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="22"
-          :maxHeight="32"
+          :midHeight="32"
+          :maxHeight="42"
           title="AI 여행 코스 추천"
           :icon="icons.Sparkles"
         >
@@ -421,11 +503,14 @@ onMounted(async () => {
 
         <!-- 3. District Info Overlay -->
         <MapWidgetFrame 
+          id="district"
+          ref="districtFrameRef"
           :show="activeWidget === 'district' && !!selectedDistrict" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="20"
-          :maxHeight="40"
+          :midHeight="32"
+          :maxHeight="42"
           title="구역 상세 정보"
           :icon="icons.MapPin"
         >
@@ -440,11 +525,14 @@ onMounted(async () => {
 
         <!-- 3.5 Place Info Overlay -->
         <MapWidgetFrame 
+          id="place"
+          ref="placeFrameRef"
           :show="activeWidget === 'place' && !!selectedPlace" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="25"
-          :maxHeight="45"
+          :midHeight="32"
+          :maxHeight="42"
           title="장소 상세 정보"
           :icon="icons.MapPin"
         >
@@ -453,11 +541,13 @@ onMounted(async () => {
 
         <!-- 4. Directions Widget (List OR Detail) -->
         <MapWidgetFrame 
+          id="directions"
           ref="routeFrameRef"
           :show="activeWidget === 'directions'" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; tripStore.pendingTrip = null; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="18"
+          :midHeight="32"
           :maxHeight="42"
           :title="tripStore.pendingTrip ? '경로 상세 정보' : '최근 길찾기'"
           :icon="icons.Navigation"
@@ -477,12 +567,14 @@ onMounted(async () => {
 
         <!-- 5. History & Social Widget -->
         <MapWidgetFrame 
+          id="history"
           ref="historyFrameRef"
           :show="activeWidget === 'history'" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="30"
-          :maxHeight="45"
+          :midHeight="32"
+          :maxHeight="42"
           title="나의 여행 기록"
           :icon="icons.Star"
         >
@@ -495,19 +587,20 @@ onMounted(async () => {
 
         <!-- 6. My Page Widget -->
         <MapWidgetFrame 
+          id="my"
           ref="myFrameRef"
           :show="activeWidget === 'my'" 
           @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @height-change="handleWidgetHeightChange"
           :minHeight="5"
-          :midHeight="25"
-          :maxHeight="40"
+          :midHeight="32"
+          :maxHeight="42"
           title="마이페이지"
           :icon="icons.User"
         >
           <MyPageWidget />
         </MapWidgetFrame>
 
-        <!-- Visit Authentication Modal -->
         <VisitAuthModal 
           v-if="showVisitAuth && nearPlace"
           :placeName="nearPlace.title"
@@ -517,6 +610,15 @@ onMounted(async () => {
           @close="showVisitAuth = false"
           @success="handleVisitSuccess"
         />
+
+        <!-- Review Modal (Star Recording) -->
+        <ReviewModal 
+          :show="showReviewModal"
+          :placeName="tripStore.pendingVisitPlace?.title || ''"
+          :placeId="tripStore.pendingVisitPlace?.contentId || ''"
+          @close="showReviewModal = false"
+          @submit="handleReviewSubmit"
+        />
       </main>
 
       <!-- ③ Compact Footer -->
@@ -525,7 +627,7 @@ onMounted(async () => {
           <!-- 1. Explore -->
           <button @click="handleExploreClick" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'home' && activeWidget === 'nearby' ? 'text-indigo-400' : 'text-slate-500'">
-            <Map class="w-5 h-5" />
+            <MapIcon class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">탐색</span>
           </button>
 

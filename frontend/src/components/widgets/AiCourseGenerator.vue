@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTripStore } from '../../services/tripService';
-import { Send, Loader2, Wand2, Trees, Building2, Coffee, PartyPopper, Landmark, Sparkles, SlidersHorizontal } from 'lucide-vue-next';
+import { Send, Loader2, Wand2, Trees, Building2, Coffee, PartyPopper, Landmark, Sparkles, SlidersHorizontal, Info } from 'lucide-vue-next';
 
 const tripStore = useTripStore();
 const emit = defineEmits(['processing-start']);
@@ -40,7 +40,6 @@ const setPreference = (key: 'natureCity' | 'healingParty' | 'traditionTrend', va
     <div class="space-y-4">
       <div class="space-y-1">
         <h3 class="text-xl font-black text-slate-900 tracking-tight">어디로 떠날까요?</h3>
-        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 w-fit px-2 py-0.5 rounded-md">AI Custom Planner</p>
       </div>
 
       <div class="relative group">
@@ -82,71 +81,99 @@ const setPreference = (key: 'natureCity' | 'healingParty' | 'traditionTrend', va
       </div>
     </div>
 
-    <!-- 3. Preference Filters (Segmented Control) -->
-    <div v-if="!tripStore.isProcessing && tripStore.preferences" class="bg-slate-50/80 rounded-3xl p-5 space-y-6 border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+    <!-- 3. Preference Filters (Seamless Integration) -->
+    <div v-if="!tripStore.isProcessing && tripStore.preferences" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
       <div class="flex items-center justify-between">
-        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-          <SlidersHorizontal class="w-3 h-3" /> 상세 취향 필터
+        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
+          <SlidersHorizontal class="w-3 h-3 text-indigo-500" /> 상세 취향 설정
         </h4>
-        <span class="text-[9px] font-bold text-indigo-400">가중치 자동 반영</span>
       </div>
 
-      <div class="space-y-4">
-        <div v-for="config in preferenceConfigs" :key="config.key" class="space-y-2">
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">{{ config.left.label }}</span>
-            <span class="text-[10px] font-black text-slate-600 uppercase tracking-tight">{{ config.right.label }}</span>
+      <div class="space-y-12 px-1">
+        <div v-for="config in preferenceConfigs" :key="config.key" class="relative">
+          <!-- Labeling -->
+          <div class="flex justify-between items-center absolute -top-6 left-0 right-0 px-1">
+            <div class="flex items-center gap-1.5 transition-all duration-300" :class="tripStore.preferences[config.key] === 0 ? 'text-indigo-600' : 'text-slate-400'">
+              <component :is="config.left.icon" class="w-3 h-3" />
+              <span class="text-[10px] font-black uppercase tracking-tight">{{ config.left.label }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 transition-all duration-300" :class="tripStore.preferences[config.key] === 1 ? 'text-indigo-600' : 'text-slate-400'">
+              <span class="text-[10px] font-black uppercase tracking-tight">{{ config.right.label }}</span>
+              <component :is="config.right.icon" class="w-3 h-3" />
+            </div>
           </div>
           
-          <!-- Segmented Toggle -->
-          <div class="grid grid-cols-3 bg-slate-200/50 p-1 rounded-xl gap-1">
-            <button 
-              @click="setPreference(config.key, 0)"
-              class="flex flex-col items-center justify-center py-2 rounded-lg transition-all"
-              :class="tripStore.preferences[config.key] === 0 ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'"
-            >
-              <component :is="config.left.icon" class="w-3.5 h-3.5 mb-0.5" />
-              <span class="text-[8px] font-black uppercase">선호</span>
+          <!-- Track Toggle -->
+          <div class="relative h-10 bg-slate-100 rounded-2xl p-1 flex items-center group border border-slate-200/50">
+            <div 
+              class="absolute h-8 bg-white rounded-xl shadow-sm border border-slate-200/50 transition-all duration-500 ease-out z-10"
+              :style="{ 
+                width: 'calc(33.33% - 4px)',
+                left: tripStore.preferences[config.key] === 0 ? '4px' : (tripStore.preferences[config.key] === 0.5 ? 'calc(33.33% + 2px)' : 'calc(66.66% + 0px)')
+              }"
+            ></div>
+            
+            <button @click="setPreference(config.key, 0)" class="flex-1 h-full z-20 flex items-center justify-center">
+               <span class="text-[9px] font-black uppercase transition-colors" :class="tripStore.preferences[config.key] === 0 ? 'text-indigo-600' : 'text-slate-400'">선호</span>
             </button>
-            <button 
-              @click="setPreference(config.key, 0.5)"
-              class="flex flex-col items-center justify-center py-2 rounded-lg transition-all"
-              :class="tripStore.preferences[config.key] === 0.5 ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'"
-            >
-              <span class="text-[10px] font-black">-</span>
+            <button @click="setPreference(config.key, 0.5)" class="flex-1 h-full z-20 flex items-center justify-center">
+               <div class="w-1 h-1 rounded-full bg-slate-300" :class="tripStore.preferences[config.key] === 0.5 ? 'bg-indigo-400' : ''"></div>
             </button>
-            <button 
-              @click="setPreference(config.key, 1)"
-              class="flex flex-col items-center justify-center py-2 rounded-lg transition-all"
-              :class="tripStore.preferences[config.key] === 1 ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'"
-            >
-              <component :is="config.right.icon" class="w-3.5 h-3.5 mb-0.5" />
-              <span class="text-[8px] font-black uppercase">선호</span>
+            <button @click="setPreference(config.key, 1)" class="flex-1 h-full z-20 flex items-center justify-center">
+               <span class="text-[9px] font-black uppercase transition-colors" :class="tripStore.preferences[config.key] === 1 ? 'text-indigo-600' : 'text-slate-400'">선호</span>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Agent Logs (During processing) -->
-    <div v-if="tripStore.isProcessing" class="animate-in fade-in zoom-in-95 duration-500">
-      <div class="bg-slate-900 text-slate-300 p-5 rounded-3xl font-mono text-[11px] shadow-2xl relative overflow-hidden border border-white/5">
-        <div class="flex items-center gap-2 mb-4 text-slate-500 border-b border-white/10 pb-3">
-          <div class="flex gap-1">
-            <div class="w-2 h-2 rounded-full bg-rose-500/50"></div>
-            <div class="w-2 h-2 rounded-full bg-amber-500/50"></div>
-            <div class="w-2 h-2 rounded-full bg-emerald-500/50"></div>
+    <!-- Agent Logs (Polished Processing Feed) -->
+    <div v-if="tripStore.isProcessing" class="mt-4 animate-in fade-in zoom-in-95 duration-700">
+      <div class="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-2xl shadow-indigo-100/20 relative overflow-hidden">
+        <!-- Decoration light -->
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/5 blur-[60px] rounded-full"></div>
+        
+        <div class="flex items-center gap-3 mb-8">
+          <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+            <Loader2 class="w-5 h-5 text-white animate-spin" />
           </div>
-          <span class="text-[9px] uppercase tracking-widest font-black ml-2 text-slate-400">Agent Logs</span>
+          <div>
+            <h4 class="text-sm font-black text-slate-900 tracking-tight">AI 플래너가 분석 중입니다</h4>
+          </div>
         </div>
-        <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-          <div v-for="(log, idx) in tripStore.logs" :key="idx" class="flex gap-3 animate-in fade-in slide-in-from-left-3">
-            <span class="text-indigo-500/50 font-bold w-4">{{ idx + 1 }}</span>
-            <span class="font-medium tracking-tight">{{ log }}</span>
+
+        <div class="space-y-4">
+          <div v-for="(log, idx) in tripStore.logs" :key="idx" class="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div class="shrink-0 w-5 flex flex-col items-center">
+              <!-- Dot Container matched to text line-height (approx 16px) -->
+              <div class="h-4 flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-[0_0_8px_#4f46e5] group-last:scale-125"></div>
+              </div>
+              <div class="w-[1px] flex-1 bg-slate-100 group-last:hidden"></div>
+            </div>
+            <div class="flex-1">
+              <span class="text-[11px] font-bold text-slate-600 leading-4 tracking-tight block">
+                {{ log }}
+              </span>
+            </div>
           </div>
-          <div class="flex gap-3 items-center text-indigo-400 animate-pulse mt-2">
-            <span class="text-indigo-500/50 font-bold w-4">></span>
-            <span class="font-bold">계산 중...</span>
+          
+          <!-- Current Action pulse (Aligned with logs) -->
+          <div class="flex gap-4 items-start">
+            <div class="shrink-0 w-5 flex items-center justify-center h-4">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></div>
+            </div>
+            <span class="text-[11px] font-black text-indigo-500 tracking-tight leading-4 flex-1">
+              최적의 경로를 계산하고 있습니다...
+            </span>
+          </div>
+
+          <!-- Background Process Info (Refined) -->
+          <div class="mt-8 pt-6 border-t border-slate-50 flex items-center justify-center gap-2 opacity-50">
+            <Info class="w-3 h-3 text-slate-400" />
+            <p class="text-[10px] font-black text-slate-400 tracking-tight">
+              분석 작업이 백그라운드에서 계속 진행됩니다
+            </p>
           </div>
         </div>
       </div>

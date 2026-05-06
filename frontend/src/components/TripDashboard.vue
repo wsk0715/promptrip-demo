@@ -45,7 +45,6 @@ const handleConfirmTrip = () => {
         <div class="flex flex-col gap-4">
           <div class="space-y-1 mb-2">
             <h3 class="text-xl font-black text-slate-900 tracking-tight">어디로 떠날까요?</h3>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">AI Custom Trip Planner</p>
           </div>
 
           <div class="relative group">
@@ -111,7 +110,7 @@ const handleConfirmTrip = () => {
         <div class="flex-1 overflow-y-auto p-6 custom-scrollbar pb-24">
           <div class="px-1 -mt-2 mb-6">
             <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-              🎯 {{ tripStore.pendingTrip.title }}
+              {{ tripStore.pendingTrip.title }}
             </h3>
             <p class="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
               {{ tripStore.pendingTrip.summary }}
