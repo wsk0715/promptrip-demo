@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import type { District } from '../types/district'
 import type { TripResponse } from '../types/trip'
 import type { Place } from '../api/tourApi'
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, X, Plane } from 'lucide-vue-next'
 
 const props = defineProps<{
   districts?: District[]
@@ -18,7 +18,7 @@ const props = defineProps<{
   historyTrips?: any[]
 }>()
 
-const emit = defineEmits(['map-move', 'district-click', 'place-click', 'star-click'])
+const emit = defineEmits(['map-move', 'district-click', 'place-click', 'star-click', 'close-share'])
 
 const mapContainer = ref<HTMLElement | null>(null)
 let map: any = null
@@ -27,6 +27,11 @@ const markers = ref<any[]>([])
 const placeMarkers = ref<any[]>([])
 const polylines = ref<any[]>([])
 const userMarker = ref<any>(null)
+
+const formatDate = (date: any) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 const clearMap = () => {
   circles.value.forEach(c => c.setMap(null))
@@ -262,26 +267,68 @@ onMounted(() => {
 
 <template>
   <div ref="mapContainer" class="w-full h-full bg-slate-100 relative overflow-hidden">
+    <!-- Premium Share Mode Overlay (Poster Style) -->
     <Transition name="fade">
-      <div v-if="isShareMode" class="absolute inset-0 z-[1000] pointer-events-none flex flex-col justify-between">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"></div>
-        <div class="relative p-8 pt-12 text-center animate-in slide-in-from-top-10 duration-1000">
-          <div class="inline-flex items-center gap-3 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-6">
-            <Sparkles class="w-4 h-4 text-amber-300" />
-            <span class="text-[11px] font-black text-white uppercase tracking-[0.3em]">Trip Memoir Shared</span>
+      <div v-if="isShareMode" class="fixed inset-0 z-[999999] pointer-events-none flex flex-col justify-between p-8">
+        <!-- Background Dimmer (Clickable part handled by Close button) -->
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-[3px] pointer-events-auto"></div>
+        
+        <!-- Header: Close & Brand Icon -->
+        <div class="relative z-10 flex justify-between items-start pointer-events-auto">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Plane class="w-6 h-6 text-white fill-white/20" />
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Memoir Series</span>
+            </div>
           </div>
-          <h1 class="text-4xl font-black text-white tracking-tight drop-shadow-2xl">{{ course?.title }}</h1>
+          <button 
+            @click="emit('close-share')" 
+            class="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white transition-all active:scale-90"
+          >
+            <X class="w-6 h-6" />
+          </button>
         </div>
-        <div class="relative p-10 pb-16 bg-gradient-to-t from-slate-950 via-slate-900/80 to-transparent animate-in slide-in-from-bottom-10 duration-1000">
-          <div class="flex justify-between items-end max-w-md mx-auto">
-            <div class="space-y-1">
-              <span class="text-white/50 text-[10px] font-black uppercase tracking-widest block">Completed At</span>
-              <p class="text-xl font-bold text-white">{{ course?.completedAt ? new Date(course.completedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '' }}</p>
+
+        <!-- Center: Title & Emotion -->
+        <div class="relative z-10 text-center py-12 animate-in fade-in zoom-in duration-1000">
+          <div class="inline-flex items-center gap-3 px-5 py-2 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 mb-8 shadow-2xl">
+            <Sparkles class="w-4 h-4 text-amber-300" />
+            <span class="text-[10px] font-black text-white uppercase tracking-[0.3em]">Memoir Captured</span>
+          </div>
+          <h1 class="text-5xl font-black text-white tracking-tighter drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] mb-4 leading-tight">
+            {{ course?.title }}
+          </h1>
+          <div class="flex items-center justify-center gap-3">
+            <div class="h-px w-10 bg-gradient-to-r from-transparent to-white/30"></div>
+            <p class="text-sm font-medium text-white/60 tracking-widest">{{ formatDate(course?.completedAt) }}</p>
+            <div class="h-px w-10 bg-gradient-to-l from-transparent to-white/30"></div>
+          </div>
+        </div>
+
+        <!-- Footer: Stats & Signature -->
+        <div class="relative z-10 flex justify-between items-end animate-in slide-in-from-bottom-10 duration-1000">
+          <div class="space-y-4">
+            <div class="flex gap-12">
+              <div class="space-y-1">
+                <span class="text-white/30 text-[9px] font-black uppercase tracking-widest block">Course Spots</span>
+                <p class="text-xl font-black text-white">{{ course?.plans.reduce((acc, p) => acc + p.items.length, 0) }} <span class="text-[10px] text-white/40">Places</span></p>
+              </div>
+              <div class="space-y-1 text-right">
+                <span class="text-white/30 text-[9px] font-black uppercase tracking-widest block">Total Log</span>
+                <p class="text-xl font-black text-indigo-400">12.4 <span class="text-[10px] text-white/40 font-bold uppercase">KM</span></p>
+              </div>
             </div>
-            <div class="text-right">
-              <span class="text-white/50 text-[10px] font-black uppercase tracking-widest block mb-1">Total Distance</span>
-              <p class="text-2xl font-black text-indigo-400">12.4 <span class="text-xs text-white/40">KM</span></p>
+            <div class="pt-4 border-t border-white/10">
+              <p class="text-[10px] font-medium text-white/20 italic">"Every path tells a story. This is mine."</p>
             </div>
+          </div>
+
+          <!-- Vertical Brand Icon Tag -->
+          <div class="flex flex-col items-end opacity-40">
+            <div class="w-px h-12 bg-white/20 mb-4"></div>
+            <Plane class="w-4 h-4 text-white rotate-90" />
           </div>
         </div>
       </div>
@@ -290,6 +337,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Custom scrollbar to keep it clean */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
 </style>

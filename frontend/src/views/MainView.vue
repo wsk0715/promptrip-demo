@@ -407,8 +407,8 @@ onMounted(async () => {
 <template>
   <div class="h-screen flex flex-col bg-white text-slate-900 font-sans overflow-hidden">
     <template v-if="isLocationReady">
-      <!-- ① Refined Search Header -->
-      <header class="shrink-0 z-[100] bg-white border-b border-slate-100">
+      <!-- ① Refined Search Header - Hide in Share Mode -->
+      <header v-if="!isShareMode" class="shrink-0 z-[100] bg-white border-b border-slate-100">
         <div class="max-w-md mx-auto w-full px-4 py-3 flex items-center gap-3">
           <!-- Left Icon (Plane) -->
           <button class="p-2 -ml-2 text-indigo-600 active:scale-90 transition-all">
@@ -445,9 +445,9 @@ onMounted(async () => {
 
       <!-- ② Main Content -->
       <main class="flex-1 relative overflow-hidden bg-slate-50">
-        <!-- Search this area floating button -->
+        <!-- Search this area floating button - Hide in Share Mode -->
         <Transition name="slide-down">
-          <div v-if="isMapMoved && activeWidget === 'nearby'" class="absolute top-16 left-0 right-0 z-[40] flex justify-center pointer-events-none">
+          <div v-if="isMapMoved && activeWidget === 'nearby' && !isShareMode" class="absolute top-16 left-0 right-0 z-[40] flex justify-center pointer-events-none">
             <button 
               @click="searchThisArea"
               class="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-indigo-100 text-indigo-600 active:scale-95 transition-all"
@@ -458,8 +458,8 @@ onMounted(async () => {
           </div>
         </Transition>
 
-        <!-- Compact Category Overlay -->
-        <div class="absolute top-3 left-0 right-0 z-20 pointer-events-none">
+        <!-- Compact Category Overlay - Hide in Share Mode -->
+        <div v-if="!isShareMode" class="absolute top-3 left-0 right-0 z-20 pointer-events-none">
           <div class="flex gap-1.5 overflow-x-auto no-scrollbar px-3 max-w-md mx-auto pointer-events-auto">
             <button 
               v-for="cat in ['전체', '🛋️ 감성카페', '🌙 야경명소', '🌲 조용한숲']" 
@@ -486,15 +486,16 @@ onMounted(async () => {
         :historyTrips="tripStore.historyTrips"
         :initialLat="initialCoords.lat"
         :initialLng="initialCoords.lng"
-        :bottomOffset="widgetHeight"
+        :bottomOffset="isShareMode ? 0 : widgetHeight"
         @map-move="handleMapMove"
         @district-click="handleDistrictSelect"
         @place-click="handlePlaceSelect"
         @star-click="handleStarClick"
+        @close-share="isShareMode = false; activeWidget = 'history'"
       />
 
-        <!-- Side Buttons -->
-        <div class="absolute right-4 bottom-[6rem] z-30 flex flex-col gap-3">
+        <!-- Side Buttons - Hide in Share Mode -->
+        <div v-if="!isShareMode" class="absolute right-4 bottom-[6rem] z-30 flex flex-col gap-3">
           <button 
             @click="goToCurrentLocation"
             class="w-12 h-12 bg-white text-indigo-600 rounded-2xl shadow-lg flex items-center justify-center active:scale-90 transition-all border border-slate-100"
@@ -503,148 +504,149 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- Systematic Map Widgets (Contained in Main) -->
-        
-        <!-- 1. Nearby Widget (Default/Background) -->
-        <MapWidgetFrame 
-          id="nearby"
-          ref="nearbyFrameRef"
-          :show="activeWidget === 'nearby'" 
-          :minHeight="5" 
-          :midHeight="32" 
-          :maxHeight="42"
-          @height-change="handleWidgetHeightChange"
-          title="주변 장소"
-          :icon="icons.Compass"
-        >
-          <NearbyWidget 
-            :places="filteredPlaces" 
-            :districts="districts"
-            @select-district="handleDistrictSelect"
-            @select-place="handlePlaceSelect"
-          />
-        </MapWidgetFrame>
+        <!-- Systematic Map Widgets - Hide in Share Mode -->
+        <template v-if="!isShareMode">
+          <!-- 1. Nearby Widget -->
+          <MapWidgetFrame 
+            id="nearby"
+            ref="nearbyFrameRef"
+            :show="activeWidget === 'nearby'" 
+            :minHeight="5" 
+            :midHeight="32" 
+            :maxHeight="42"
+            @height-change="handleWidgetHeightChange"
+            title="주변 장소"
+            :icon="icons.Compass"
+          >
+            <NearbyWidget 
+              :places="filteredPlaces" 
+              :districts="districts"
+              @select-district="handleDistrictSelect"
+              @select-place="handlePlaceSelect"
+            />
+          </MapWidgetFrame>
 
-        <!-- 2. AI Planner Widget (Generator) -->
-        <MapWidgetFrame 
-          id="chat"
-          ref="chatFrameRef"
-          :show="activeWidget === 'chat'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          title="AI 여행 코스 추천"
-          :icon="icons.Sparkles"
-        >
-          <AiCourseGenerator @processing-start="handleProcessingStart" />
-        </MapWidgetFrame>
+          <!-- 2. AI Planner Widget -->
+          <MapWidgetFrame 
+            id="chat"
+            ref="chatFrameRef"
+            :show="activeWidget === 'chat'" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            title="AI 여행 코스 추천"
+            :icon="icons.Sparkles"
+          >
+            <AiCourseGenerator @processing-start="handleProcessingStart" />
+          </MapWidgetFrame>
 
-        <!-- 3. District Info Overlay -->
-        <MapWidgetFrame 
-          id="district"
-          ref="districtFrameRef"
-          :show="activeWidget === 'district' && !!selectedDistrict" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          title="구역 상세 정보"
-          :icon="icons.MapPin"
-        >
-          <DistrictInfoWidget 
-            v-if="selectedDistrict" 
-            :district="selectedDistrict" 
-            :places="places"
-            @place-select="handlePlaceSelect"
-            @add-to-course="handleAddToCourse"
-          />
-        </MapWidgetFrame>
+          <!-- 3. District Info Overlay -->
+          <MapWidgetFrame 
+            id="district"
+            ref="districtFrameRef"
+            :show="activeWidget === 'district' && !!selectedDistrict" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            title="구역 상세 정보"
+            :icon="icons.MapPin"
+          >
+            <DistrictInfoWidget 
+              v-if="selectedDistrict" 
+              :district="selectedDistrict" 
+              :places="places"
+              @place-select="handlePlaceSelect"
+              @add-to-course="handleAddToCourse"
+            />
+          </MapWidgetFrame>
 
-        <!-- 3.5 Place Info Overlay -->
-        <MapWidgetFrame 
-          id="place"
-          ref="placeFrameRef"
-          :show="activeWidget === 'place' && !!selectedPlace" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          title="장소 상세 정보"
-          :icon="icons.MapPin"
-        >
-          <PlaceInfoWidget v-if="selectedPlace" :place="selectedPlace" />
-        </MapWidgetFrame>
+          <!-- 3.5 Place Info Overlay -->
+          <MapWidgetFrame 
+            id="place"
+            ref="placeFrameRef"
+            :show="activeWidget === 'place' && !!selectedPlace" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            title="장소 상세 정보"
+            :icon="icons.MapPin"
+          >
+            <PlaceInfoWidget v-if="selectedPlace" :place="selectedPlace" />
+          </MapWidgetFrame>
 
-        <!-- 4. Directions Widget (List OR Detail) -->
-        <MapWidgetFrame 
-          id="directions"
-          ref="routeFrameRef"
-          :show="activeWidget === 'directions'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; tripStore.pendingTrip = null; nearbyController.snapTo('MIN')"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          :title="tripStore.pendingTrip ? '경로 상세 정보' : '최근 길찾기'"
-          :icon="icons.Navigation"
-        >
-          <RouteGuidanceWidget 
-            v-if="tripStore.currentTrip"
-            @place-click="handlePlaceSelect"
-          />
-          <PendingTripWidget 
-            v-else-if="tripStore.pendingTrip"
-            @place-click="handlePlaceSelect"
-            @edit-mode-change="handleEditModeChange"
-          />
-          <DirectionsWidget 
-            v-else
-            :recentCourses="tripStore.recentTrips" 
-            @selectCourse="handleHistorySelect" 
-          />
-        </MapWidgetFrame>
+          <!-- 4. Directions Widget -->
+          <MapWidgetFrame 
+            id="directions"
+            ref="routeFrameRef"
+            :show="activeWidget === 'directions'" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; tripStore.pendingTrip = null; nearbyController.snapTo('MIN')"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            :title="tripStore.pendingTrip ? '경로 상세 정보' : '최근 길찾기'"
+            :icon="icons.Navigation"
+          >
+            <RouteGuidanceWidget 
+              v-if="tripStore.currentTrip"
+              @place-click="handlePlaceSelect"
+            />
+            <PendingTripWidget 
+              v-else-if="tripStore.pendingTrip"
+              @place-click="handlePlaceSelect"
+              @edit-mode-change="handleEditModeChange"
+            />
+            <DirectionsWidget 
+              v-else
+              :recentCourses="tripStore.recentTrips" 
+              @selectCourse="handleHistorySelect" 
+            />
+          </MapWidgetFrame>
 
-        <!-- 5. History & Social Widget -->
-        <MapWidgetFrame 
-          id="history"
-          ref="historyFrameRef"
-          :show="activeWidget === 'history'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; historyFocusTrip = null; isShareMode = false"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          title="나의 여행 기록"
-          :icon="icons.Star"
-        >
-          <HistoryWidget 
-            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')" 
-            @start-journey="activeWidget = 'chat'; activeTab = 'home'"
-            @view-plan="activeWidget = 'directions'; activeTab = 'home'; nearbyController.snapTo('MIN')"
-            @history-focus="(trip) => historyFocusTrip = trip"
-            @share-mode="(trip) => { isShareMode = true; historyFocusTrip = trip; historyController.snapTo('MIN') }"
-          />
-        </MapWidgetFrame>
+          <!-- 5. History & Social Widget -->
+          <MapWidgetFrame 
+            id="history"
+            ref="historyFrameRef"
+            :show="activeWidget === 'history'" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; historyFocusTrip = null; isShareMode = false"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            title="나의 여행 기록"
+            :icon="icons.Star"
+          >
+            <HistoryWidget 
+              @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')" 
+              @start-journey="activeWidget = 'chat'; activeTab = 'home'"
+              @view-plan="activeWidget = 'directions'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+              @history-focus="(trip) => historyFocusTrip = trip"
+              @share-mode="(trip) => { isShareMode = true; historyFocusTrip = trip; historyController.snapTo('MIN') }"
+            />
+          </MapWidgetFrame>
 
-        <!-- 7. My Page Widget -->
-        <MapWidgetFrame 
-          id="my"
-          ref="myFrameRef"
-          :show="activeWidget === 'my'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
-          @height-change="handleWidgetHeightChange"
-          :minHeight="5"
-          :midHeight="32"
-          :maxHeight="42"
-          title="마이페이지"
-          :icon="icons.User"
-        >
-          <MyPageWidget />
-        </MapWidgetFrame>
+          <!-- 7. My Page Widget -->
+          <MapWidgetFrame 
+            id="my"
+            ref="myFrameRef"
+            :show="activeWidget === 'my'" 
+            @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+            @height-change="handleWidgetHeightChange"
+            :minHeight="5"
+            :midHeight="32"
+            :maxHeight="42"
+            title="마이페이지"
+            :icon="icons.User"
+          >
+            <MyPageWidget />
+          </MapWidgetFrame>
+        </template>
 
         <VisitAuthModal 
           v-if="showVisitAuth && nearPlace"
@@ -656,7 +658,6 @@ onMounted(async () => {
           @success="handleVisitSuccess"
         />
 
-        <!-- Review Modal (Star Recording) -->
         <ReviewModal 
           :show="showReviewModal"
           :placeName="tripStore.pendingVisitPlace?.title || ''"
@@ -666,17 +667,15 @@ onMounted(async () => {
         />
       </main>
 
-      <!-- ③ Compact Footer -->
-      <footer class="shrink-0 z-[100000] w-full bg-slate-900 border-t border-white/5 pb-safe">
+      <!-- ③ Compact Footer - Hide in Share Mode -->
+      <footer v-if="!isShareMode" class="shrink-0 z-[100000] w-full bg-slate-900 border-t border-white/5 pb-safe">
         <div class="max-w-md mx-auto px-2 flex justify-between items-center h-18">
-          <!-- 1. Explore -->
+          <!-- Footers... -->
           <button @click="handleExploreClick" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'home' && activeWidget === 'nearby' ? 'text-indigo-400' : 'text-slate-500'">
             <MapIcon class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">탐색</span>
           </button>
-
-          <!-- 2. Directions -->
           <button @click="toggleWidget('directions')" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeWidget === 'directions' ? 'text-indigo-400' : 'text-slate-500'">
             <div class="relative">
@@ -687,8 +686,6 @@ onMounted(async () => {
             </div>
             <span class="text-[9px] font-medium uppercase tracking-tight">길찾기</span>
           </button>
-          
-          <!-- 3. AI Course -->
           <button @click="toggleWidget('chat')" class="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95 bg-indigo-600/20"
             :class="activeWidget === 'chat' ? 'text-indigo-400' : 'text-slate-400'">
             <div class="relative">
@@ -697,15 +694,11 @@ onMounted(async () => {
             </div>
             <span class="text-[9px] font-medium uppercase tracking-tight">AI코스</span>
           </button>
-
-          <!-- 4. History -->
           <button @click="toggleWidget('history')" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'history' ? 'text-indigo-400' : 'text-slate-500'">
             <Star class="w-5 h-5" />
             <span class="text-[9px] font-medium uppercase tracking-tight">기록</span>
           </button>
-
-          <!-- 5. My -->
           <button @click="toggleWidget('my')" class="flex-1 flex flex-col items-center gap-1 transition-all"
             :class="activeTab === 'my' ? 'text-indigo-400' : 'text-slate-500'">
             <User class="w-5 h-5" />
