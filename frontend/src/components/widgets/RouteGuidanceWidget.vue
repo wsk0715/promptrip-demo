@@ -15,33 +15,6 @@ const nextPlace = computed(() => {
   }
   return null;
 });
-
-const getTravelInfo = (fromIdx: number, toIdx: number) => {
-  const plan = tripStore.currentTrip?.plans[0];
-  if (!plan) return null;
-  
-  const from = plan.items[fromIdx];
-  const to = plan.items[toIdx];
-  if (!from || !to) return null;
-
-  const R = 6371e3; 
-  const lat1 = from.mapY * Math.PI / 180;
-  const lat2 = to.mapY * Math.PI / 180;
-  const deltaLat = (to.mapY - from.mapY) * Math.PI / 180;
-  const deltaLng = (to.mapX - from.mapX) * Math.PI / 180;
-
-  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-            Math.cos(lat1) * Math.cos(lat2) *
-            Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; 
-
-  const type = distance < 1000 ? 'walk' : 'car';
-  const distText = distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`;
-  const timeText = distance < 1000 ? `${Math.round(distance / 60)}분` : `${Math.round((distance / 1000) * 4) + 2}분`;
-  
-  return { type, dist: distText, time: timeText };
-};
 </script>
 
 <template>
@@ -88,8 +61,8 @@ const getTravelInfo = (fromIdx: number, toIdx: number) => {
               <!-- Travel Distance Divider -->
               <div v-if="idx < day.items.length - 1 && !tripStore.isPlaceVisited(item.contentId)" class="absolute -bottom-4 left-4 z-20">
                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white border border-slate-100 rounded-lg shadow-sm">
-                  <component :is="getTravelInfo(idx, idx + 1)?.type === 'walk' ? Footprints : Car" class="w-2.5 h-2.5 text-slate-300" />
-                  <span class="text-[8px] font-black text-slate-400">{{ getTravelInfo(idx, idx + 1)?.time }}</span>
+                  <component :is="tripStore.getTravelInfoBetweenItems(tripStore.currentTrip, idx, idx + 1)?.type === 'walk' ? Footprints : Car" class="w-2.5 h-2.5 text-slate-300" />
+                  <span class="text-[8px] font-black text-slate-400">{{ tripStore.getTravelInfoBetweenItems(tripStore.currentTrip, idx, idx + 1)?.time }}</span>
                 </div>
               </div>
             </div>

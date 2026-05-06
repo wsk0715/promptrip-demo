@@ -3,6 +3,8 @@ import { ref } from 'vue';
 import type { TripResponse } from '../types/trip';
 import type { Place } from '../api/tourApi';
 import { historyApi } from '../api/historyApi';
+import { calculateDistance, estimateTravelInfo } from '../utils/geoUtils';
+import type { TravelInfo } from '../utils/geoUtils';
 
 export interface VisitRecord {
   tripId: string;
@@ -326,6 +328,21 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
+  /**
+   * Business Logic: Get travel info between two items in a trip
+   */
+  const getTravelInfoBetweenItems = (trip: TripResponse | null, fromIdx: number, toIdx: number): TravelInfo | null => {
+    if (!trip || !trip.plans[0]) return null;
+    const items = trip.plans[0].items;
+    const from = items[fromIdx];
+    const to = items[toIdx];
+    
+    if (!from || !to) return null;
+    
+    const dist = calculateDistance(from.mapY, from.mapX, to.mapY, to.mapX);
+    return estimateTravelInfo(dist);
+  };
+
   return {
     currentTrip,
     pendingTrip,
@@ -353,6 +370,7 @@ export const useTripStore = defineStore('trip', () => {
     fetchCommunityTrips,
     importCommunityTrip,
     shareTripToCommunity,
+    getTravelInfoBetweenItems,
     preferences
   };
 });

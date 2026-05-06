@@ -30,32 +30,6 @@ const handleReplaceItem = (index: number) => {
   tripStore.replaceItemWithAlternative(index);
 };
 
-const getTravelInfo = (fromIdx: number, toIdx: number) => {
-  const plan = tripStore.pendingTrip?.plans[0];
-  if (!plan) return null;
-  
-  const from = plan.items[fromIdx];
-  const to = plan.items[toIdx];
-  if (!from || !to) return null;
-
-  const R = 6371e3; 
-  const lat1 = from.mapY * Math.PI / 180;
-  const lat2 = to.mapY * Math.PI / 180;
-  const deltaLat = (to.mapY - from.mapY) * Math.PI / 180;
-  const deltaLng = (to.mapX - from.mapX) * Math.PI / 180;
-
-  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-            Math.cos(lat1) * Math.cos(lat2) *
-            Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; 
-
-  const distText = distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`;
-  const timeText = distance < 1000 ? `${Math.round(distance / 60)}분` : `${Math.round((distance / 1000) * 4) + 2}분`;
-  
-  return { dist: distText, time: timeText };
-};
-
 const handlePointerDown = (index: number, e: PointerEvent) => {
   e.stopPropagation();
   draggedIndex.value = index;
@@ -124,7 +98,7 @@ const handlePointerDown = (index: number, e: PointerEvent) => {
                   <p class="text-[11px] font-medium text-slate-400 truncate">{{ item.addr1 }}</p>
                   <div v-if="idx < day.items.length - 1" class="flex items-center gap-2 mt-4 text-[10px] font-black text-indigo-400/70 bg-indigo-50/50 w-fit px-2.5 py-1 rounded-lg border border-indigo-100/30">
                     <ArrowRight class="w-3.5 h-3.5" />
-                    <span>{{ getTravelInfo(idx, idx + 1)?.dist }} 이동 ({{ getTravelInfo(idx, idx + 1)?.time }})</span>
+                    <span>{{ tripStore.getTravelInfoBetweenItems(tripStore.pendingTrip, idx, idx + 1)?.dist }} 이동 ({{ tripStore.getTravelInfoBetweenItems(tripStore.pendingTrip, idx, idx + 1)?.time }})</span>
                   </div>
                 </div>
                 <div v-if="isEditing" class="shrink-0 flex gap-1.5">
