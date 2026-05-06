@@ -12,9 +12,11 @@ const props = defineProps<{
   initialLng: number
   visits?: any[]
   bottomOffset?: number
+  isHistoryMode?: boolean
+  historyTrips?: any[]
 }>()
 
-const emit = defineEmits(['map-move', 'district-click', 'place-click'])
+const emit = defineEmits(['map-move', 'district-click', 'place-click', 'star-click'])
 
 const mapContainer = ref<HTMLElement | null>(null)
 let map: any = null
@@ -137,14 +139,18 @@ const drawCourse = () => {
           icon: {
             content: isVisited ? `
               <div class="relative group cursor-pointer animate-in zoom-in duration-500">
-                <div class="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                <!-- Star Glow Effect (Only in History Mode) -->
+                ${props.isHistoryMode ? `
+                  <div class="absolute inset-0 bg-white/40 blur-xl scale-150 animate-pulse"></div>
+                ` : ''}
+                <div class="w-8 h-8 ${props.isHistoryMode ? 'bg-white' : 'bg-indigo-600'} ${props.isHistoryMode ? 'text-indigo-600' : 'text-white'} rounded-full flex items-center justify-center border-2 border-white shadow-lg relative z-10">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </div>
               </div>
             ` : `
-              <div class="relative group cursor-pointer">
+              <div class="relative group cursor-pointer ${props.isHistoryMode ? 'opacity-20' : ''}">
                 <div class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg text-[11px] group-hover:scale-110 transition-all">
                   ${index + 1}
                 </div>
@@ -152,7 +158,7 @@ const drawCourse = () => {
             `,
             anchor: new naver.maps.Point(16, 16)
           },
-          zIndex: 200
+          zIndex: props.isHistoryMode ? 1000 : 200
         })
         markers.value.push(marker)
 
@@ -211,12 +217,73 @@ const drawCourse = () => {
   }
 }
 
+const drawHistoryConstellations = () => {
+  if (!map || !props.historyTrips || !props.isHistoryMode) return
+
+  props.historyTrips.forEach(trip => {
+    const tripPath: any[] = []
+    const isFocused = props.course?.id === trip.id
+
+    trip.plans.forEach(plan => {
+      plan.items.forEach((item, index) => {
+        const position = new naver.maps.LatLng(item.mapY, item.mapX)
+        tripPath.push(position)
+
+        const visit = trip.visits?.find(v => v.placeId === item.contentId)
+        if (!visit) return
+
+        const marker = new naver.maps.Marker({
+          position: position,
+          map: map,
+          icon: {
+            content: `
+              <div class="relative group cursor-pointer">
+                <!-- Outer Glow -->
+                <div class="absolute inset-0 bg-white/20 blur-lg scale-150 ${isFocused ? 'animate-pulse' : ''}"></div>
+                <div class="w-8 h-8 ${isFocused ? 'bg-white text-indigo-600 scale-110' : 'bg-indigo-600/40 text-white/50'} rounded-full flex items-center justify-center border-2 border-white/50 shadow-lg relative z-10 transition-all">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+              </div>
+            `,
+            anchor: new naver.maps.Point(16, 16)
+          },
+          zIndex: isFocused ? 1000 : 500
+        })
+
+        naver.maps.Event.addListener(marker, 'click', () => {
+          emit('star-click', { trip, visit, item })
+        })
+        markers.value.push(marker)
+      })
+    })
+
+    if (isFocused && tripPath.length > 1) {
+      const polyline = new naver.maps.Polyline({
+        map: map,
+        path: tripPath,
+        strokeColor: '#FFFFFF',
+        strokeOpacity: 0.4,
+        strokeWeight: 2,
+        strokeStyle: 'dash'
+      })
+      polylines.value.push(polyline)
+    }
+  })
+}
+
 const updateMap = () => {
   if (!map) return
   clearMap()
-  drawDistricts()
-  drawPlaces()
-  drawCourse()
+  
+  if (props.isHistoryMode) {
+    drawHistoryConstellations()
+  } else {
+    drawDistricts()
+    drawPlaces()
+    drawCourse()
+  }
 }
 
 const updateUserLocation = (lat: number, lng: number) => {
@@ -322,7 +389,7 @@ const naver = (window as any).naver
 </script>
 
 <template>
-  <div ref="mapContainer" class="w-full h-full bg-slate-100">
+  <div ref="mapContainer" class="w-full h-full bg-slate-100 relative overflow-hidden">
     <!-- Map will be rendered here -->
     <div v-if="!naver" class="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
       지도를 불러오는 중...

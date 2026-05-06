@@ -39,12 +39,22 @@ const places = ref<Place[]>([])
 const tripStore = useTripStore()
 const activeTab = ref('home')
 const activeCategory = ref('전체')
+const historyFocusTrip = ref<TripResponse | null>(null)
+const selectedVisitFromMap = ref<any | null>(null)
 
-// Widget Controllers
+// Logic Controllers
 const chatController = useWidgetController(chatFrameRef)
 const routeController = useWidgetController(routeFrameRef)
 const nearbyController = useWidgetController(nearbyFrameRef)
 const historyController = useWidgetController(historyFrameRef)
+
+const handleStarClick = (data: any) => {
+  historyFocusTrip.value = data.trip
+  selectedVisitFromMap.value = data
+  if (mapRef.value) {
+    mapRef.value.setCenter(data.item.mapY, data.item.mapX)
+  }
+}
 const myController = useWidgetController(myFrameRef)
 const placeController = useWidgetController(placeFrameRef)
 const districtController = useWidgetController(districtFrameRef)
@@ -462,18 +472,21 @@ onMounted(async () => {
         </div>
 
         <NaverMap 
-          ref="mapRef" 
-          :districts="districts" 
-          :course="(activeWidget === 'directions' && tripStore.pendingTrip) || tripStore.currentTrip" 
-          :places="filteredPlaces" 
-          :visits="tripStore.currentTrip?.visits || []"
-          :initialLat="initialCoords.lat"
-          :initialLng="initialCoords.lng"
-          :bottomOffset="lastWidgetHeight"
-          @map-move="handleMapMove"
-          @district-click="handleDistrictSelect"
-          @place-click="handlePlaceSelect"
-        />
+        ref="mapRef"
+        :districts="districts"
+        :places="places"
+        :course="historyFocusTrip || tripStore.currentTrip || tripStore.pendingTrip"
+        :visits="historyFocusTrip ? (historyFocusTrip as any).visits : tripStore.visitedPlaces"
+        :isHistoryMode="activeWidget === 'history'"
+        :historyTrips="tripStore.historyTrips"
+        :initialLat="initialCoords.lat"
+        :initialLng="initialCoords.lng"
+        :bottomOffset="widgetHeight"
+        @map-move="handleMapMove"
+        @district-click="handleDistrictClick"
+        @place-click="handlePlaceSelect"
+        @star-click="handleStarClick"
+      />
 
         <!-- Side Buttons -->
         <div class="absolute right-4 bottom-[6rem] z-30 flex flex-col gap-3">
@@ -595,7 +608,7 @@ onMounted(async () => {
           id="history"
           ref="historyFrameRef"
           :show="activeWidget === 'history'" 
-          @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+          @close="activeWidget = 'nearby'; activeTab = 'home'; historyFocusTrip = null"
           @height-change="handleWidgetHeightChange"
           :minHeight="5"
           :midHeight="32"
@@ -607,10 +620,11 @@ onMounted(async () => {
             @close="activeWidget = 'nearby'; activeTab = 'home'; nearbyController.snapTo('MIN')" 
             @start-journey="activeWidget = 'chat'; activeTab = 'home'"
             @view-plan="activeWidget = 'directions'; activeTab = 'home'; nearbyController.snapTo('MIN')"
+            @history-focus="(trip) => historyFocusTrip = trip"
           />
         </MapWidgetFrame>
 
-        <!-- 6. My Page Widget -->
+        <!-- 7. My Page Widget -->
         <MapWidgetFrame 
           id="my"
           ref="myFrameRef"

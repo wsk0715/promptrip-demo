@@ -192,6 +192,7 @@ export const useTripStore = defineStore('trip', () => {
         completedAt: '',
         visits: []
       };
+      pendingTrip.value = null; // Clear pending trip once it becomes current
     }
   };
 
@@ -208,6 +209,8 @@ export const useTripStore = defineStore('trip', () => {
     if (currentTrip.value.visits.length === allPlaces.length) {
       currentTrip.value.completedAt = new Date().toISOString();
       historyTrips.value.unshift({ ...currentTrip.value });
+      currentTrip.value = null; // Clear active trip upon completion
+      pendingTrip.value = null; // Ensure pending trip is also cleared
     }
   };
 

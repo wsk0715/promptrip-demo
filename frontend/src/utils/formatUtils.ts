@@ -18,14 +18,26 @@ export const formatDate = (iso: string): string => {
 /**
  * Maps emotion keys to emojis
  */
-export const getEmotionIcon = (emotion: string): string => {
+export const getEmotionIcon = (emotionId: string) => {
   const icons: Record<string, string> = {
-    happy: '😊',
-    peaceful: '🧘',
-    excited: '🤩',
-    melancholy: '🌧️'
+    joy: '😊',
+    peace: '☁️',
+    healing: '🌿',
+    inspiration: '✨',
+    excitement: '🔥'
   };
-  return icons[emotion] || '✨';
+  return icons[emotionId] || '📍';
+};
+
+export const getEmotionColor = (emotionId: string) => {
+  const colors: Record<string, string> = {
+    joy: '#FBBF24',        // Amber/Gold
+    peace: '#3B82F6',      // Blue
+    healing: '#10B981',    // Emerald
+    inspiration: '#8B5CF6', // Violet
+    excitement: '#F59E0B'   // Orange/Star
+  };
+  return colors[emotionId] || '#6366F1';
 };
 
 /**
