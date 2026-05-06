@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useTripStore } from '../../services/tripService';
-import { Clock, Check, Flag, Footprints, Car } from 'lucide-vue-next';
+import { Clock, Star, Flag, Footprints, Car } from 'lucide-vue-next';
 
 const tripStore = useTripStore();
 const emit = defineEmits(['place-click']);
@@ -52,9 +52,9 @@ const nextPlace = computed(() => {
                 <button 
                   @click.stop="tripStore.quickRecordVisit(item.contentId)"
                   class="w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ml-3"
-                  :class="tripStore.isPlaceVisited(item.contentId) ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-100 text-slate-200 hover:text-indigo-500'"
+                  :class="tripStore.isPlaceVisited(item.contentId) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border border-slate-100 text-slate-200 hover:text-indigo-500'"
                 >
-                  <Check class="w-4 h-4" />
+                  <Star class="w-4 h-4" :class="{ 'fill-current': tripStore.isPlaceVisited(item.contentId) }" />
                 </button>
               </div>
               
