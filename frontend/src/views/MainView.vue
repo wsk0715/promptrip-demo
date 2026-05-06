@@ -2,7 +2,9 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import NaverMap from '../components/NaverMap.vue'
 import AiCourseGenerator from '../components/widgets/AiCourseGenerator.vue'
-import RouteDetailView from '../components/widgets/RouteDetailView.vue'
+import PendingTripWidget from '../components/widgets/PendingTripWidget.vue'
+import RouteGuidanceWidget from '../components/widgets/RouteGuidanceWidget.vue'
+import TripHistoryWidget from '../components/widgets/TripHistoryWidget.vue'
 import MapWidgetFrame from '../components/widgets/MapWidgetFrame.vue'
 import NearbyWidget from '../components/widgets/NearbyWidget.vue'
 import DistrictInfoWidget from '../components/widgets/DistrictInfoWidget.vue'
@@ -262,6 +264,17 @@ const handleHistorySelect = (course: TripResponse) => {
   tripStore.pendingTrip = course
   routeController.snapTo('MID')
 }
+
+// Auto-switch when navigation starts
+watch(() => tripStore.currentTrip, (newTrip) => {
+  if (newTrip) {
+    activeWidget.value = 'directions'
+    activeTab.value = 'home'
+    setTimeout(() => {
+      routeController.snapTo('MID')
+    }, 100)
+  }
+})
 
 const handleEditModeChange = (isEditing: boolean) => {
   if (isEditing) {
@@ -561,16 +574,17 @@ onMounted(async () => {
           :title="tripStore.pendingTrip ? '경로 상세 정보' : '최근 길찾기'"
           :icon="icons.Navigation"
         >
-          <RouteDetailView 
-            v-if="tripStore.pendingTrip || tripStore.currentTrip"
-            @trip-update="handleTripUpdate"
-            @edit-mode-change="handleEditModeChange"
+          <RouteGuidanceWidget 
+            v-if="tripStore.currentTrip"
             @place-click="handlePlaceSelect"
           />
-          <DirectionsWidget 
+          <PendingTripWidget 
+            v-else-if="tripStore.pendingTrip"
+            @place-click="handlePlaceSelect"
+            @edit-mode-change="handleEditModeChange"
+          />
+          <TripHistoryWidget 
             v-else
-            :recentCourses="tripStore.recentTrips" 
-            @selectCourse="handleHistorySelect" 
           />
         </MapWidgetFrame>
 
