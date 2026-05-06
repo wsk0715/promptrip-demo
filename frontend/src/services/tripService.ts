@@ -33,7 +33,7 @@ export interface CommunityTrip extends TripResponse {
 }
 
 export const useTripStore = defineStore('trip', () => {
-  const currentTrip = ref<HistoryTrip | null>(null); // Active trip with visit tracking
+  const currentTrip = ref<HistoryTrip | null>(null);
   const pendingTrip = ref<TripResponse | null>(null);
   const logs = ref<string[]>([]);
   const isProcessing = ref(false);
@@ -42,18 +42,16 @@ export const useTripStore = defineStore('trip', () => {
   const recentTrips = ref<TripResponse[]>([]);
   const historyTrips = ref<HistoryTrip[]>([]);
   const visitedPlaces = ref<VisitRecord[]>([]);
-  const pendingVisitPlace = ref<Place | null>(null); // Place currently being reviewed
+  const pendingVisitPlace = ref<Place | null>(null);
   const preferences = ref({
-    natureCity: 0.5, // 0: Nature, 1: City
-    healingParty: 0.5, // 0: Healing, 1: Party
-    traditionTrend: 0.5 // 0: Tradition, 1: Trend
+    natureCity: 0.5,
+    healingParty: 0.5,
+    traditionTrend: 0.5
   });
 
   const communityTrips = ref<CommunityTrip[]>([]);
 
-  /**
-   * Fetch community trips from API
-   */
+  // API Methods
   const fetchCommunityTrips = async () => {
     try {
       const data = await historyApi.getCommunityTrips();
@@ -63,32 +61,21 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
-  /**
-   * Import a trip from community to my pending plan
-   */
   const importCommunityTrip = (trip: CommunityTrip) => {
-    // Clone the community trip structure to my pending plan
     pendingTrip.value = {
       title: `${trip.title} (복사됨)`,
       summary: trip.summary,
       totalDuration: trip.totalDuration,
-      plans: JSON.parse(JSON.stringify(trip.plans)) // Deep clone to avoid mutations
+      plans: JSON.parse(JSON.stringify(trip.plans))
     };
-    
-    // Auto-add to recent list
     addToRecent(pendingTrip.value);
   };
 
-  /**
-   * Share current completed trip to community
-   */
   const shareTripToCommunity = async (trip: HistoryTrip) => {
     isProcessing.value = true;
     try {
       const success = await historyApi.shareTrip(trip);
-      if (success) {
-        console.log('Successfully shared trip');
-      }
+      if (success) console.log('Successfully shared trip');
     } catch (e) {
       error.value = "여정 공유에 실패했습니다.";
     } finally {
@@ -96,18 +83,30 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
+  // Logic Methods
+  const filterPlacesByDistrict = (district: any, places: Place[]): Place[] => {
+    if (!district || !places) return [];
+    return places.filter(place => {
+      const dist = calculateDistance(district.lat, district.lng, place.mapY, place.mapX);
+      return dist <= district.radius;
+    });
+  };
+
+  const getTravelInfoBetweenItems = (trip: TripResponse | null, fromIdx: number, toIdx: number): TravelInfo | null => {
+    if (!trip || !trip.plans[0]) return null;
+    const items = trip.plans[0].items;
+    const from = items[fromIdx];
+    const to = items[toIdx];
+    if (!from || !to) return null;
+    const dist = calculateDistance(from.mapY, from.mapX, to.mapY, to.mapX);
+    return estimateTravelInfo(dist);
+  };
+
   const addToRecent = (trip: TripResponse) => {
-    // Prevent duplicate titles in recent list
     const exists = recentTrips.value.findIndex(t => t.title === trip.title);
-    if (exists !== -1) {
-      recentTrips.value.splice(exists, 1);
-    }
-    
-    // Add to front and limit to 5 items
+    if (exists !== -1) recentTrips.value.splice(exists, 1);
     recentTrips.value.unshift({ ...trip });
-    if (recentTrips.value.length > 5) {
-      recentTrips.value.pop();
-    }
+    if (recentTrips.value.length > 5) recentTrips.value.pop();
   };
 
   const startPlanning = async (query: string) => {
@@ -123,17 +122,6 @@ export const useTripStore = defineStore('trip', () => {
     await new Promise(r => setTimeout(r, 600));
     logs.value.push("주변 데이터 및 저매출 구역 필터링 중...");
     await new Promise(r => setTimeout(r, 1000));
-    
-    // Dynamic mock logs
-    const dist1 = (0.5 + Math.random() * 1.5).toFixed(1);
-    const time1 = Math.round(parseFloat(dist1) * 2.5 + 5);
-    logs.value.push(`안티-허브 추천 구역 탐색 완료 (반경 ${dist1}km 내)`);
-    await new Promise(r => setTimeout(r, 700));
-    
-    const totalDist = (3 + Math.random() * 7).toFixed(1);
-    const totalTime = Math.round(parseFloat(totalDist) * 3 + 15);
-    logs.value.push(`최적 이동 동선 산출 중 (총 ${totalDist}km, 약 ${totalTime}분 예상)`);
-    await new Promise(r => setTimeout(r, 1200));
     
     logs.value.push("최종 여행 코스 구성 완료!");
 
@@ -156,8 +144,7 @@ export const useTripStore = defineStore('trip', () => {
               aiMetadata: {
                 time: "15:00",
                 reason: "해변 열차를 타고 부산의 푸른 바다를 가장 가까이서 감상할 수 있습니다.",
-                avgStay: "1시간",
-                travelTimeNext: "도보 15분"
+                avgStay: "1시간"
               }
             },
             {
@@ -171,8 +158,7 @@ export const useTripStore = defineStore('trip', () => {
               aiMetadata: {
                 time: "16:30",
                 reason: "마린시티의 화려한 스카이라인을 배경으로 인생샷을 남기기 좋습니다.",
-                avgStay: "1시간",
-                travelTimeNext: "차량 10분"
+                avgStay: "1시간"
               }
             },
             {
@@ -185,7 +171,7 @@ export const useTripStore = defineStore('trip', () => {
               firstImage: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800",
               aiMetadata: {
                 time: "18:00",
-                reason: "사용자님의 취향에 맞는 조용하고 바다 전망이 아름다운 다락방 스타일의 카페입니다.",
+                reason: "사용자님의 취향에 맞는 조용하고 바다전망 카페입니다.",
                 avgStay: "1시간"
               }
             }
@@ -194,9 +180,7 @@ export const useTripStore = defineStore('trip', () => {
       ]
     };
 
-    if (pendingTrip.value) {
-      addToRecent(pendingTrip.value);
-    }
+    if (pendingTrip.value) addToRecent(pendingTrip.value);
     isProcessing.value = false;
   };
 
@@ -213,20 +197,13 @@ export const useTripStore = defineStore('trip', () => {
 
   const recordVisit = (visit: Omit<VisitRecord, 'timestamp' | 'tripId'>) => {
     if (!currentTrip.value) return;
-    
     const newRecord: VisitRecord = {
       ...visit,
       tripId: currentTrip.value.id,
       timestamp: new Date().toISOString()
     };
-    
-    // Add to current trip's visits
     currentTrip.value.visits.push(newRecord);
-    
-    // Add to global visited list
     visitedPlaces.value.push(newRecord);
-    
-    // If all places visited, complete the trip
     const allPlaces = currentTrip.value.plans.flatMap(p => p.items);
     if (currentTrip.value.visits.length === allPlaces.length) {
       currentTrip.value.completedAt = new Date().toISOString();
@@ -234,13 +211,8 @@ export const useTripStore = defineStore('trip', () => {
     }
   };
 
-  /**
-   * Quick visit for demo purposes
-   */
   const quickRecordVisit = (placeId: string) => {
-    if (!currentTrip.value) return;
-    if (isPlaceVisited(placeId)) return;
-
+    if (!currentTrip.value || isPlaceVisited(placeId)) return;
     recordVisit({
       placeId,
       rating: 5,
@@ -275,7 +247,6 @@ export const useTripStore = defineStore('trip', () => {
 
   const addPlaceToPending = (place: Place) => {
     if (!pendingTrip.value) {
-      // Create a basic trip structure if none exists
       pendingTrip.value = {
         title: "내가 만든 커스텀 코스",
         summary: "직접 선택한 장소들로 구성된 코스입니다.",
@@ -283,7 +254,6 @@ export const useTripStore = defineStore('trip', () => {
         plans: [{ day: 1, items: [] }]
       };
     }
-    
     if (pendingTrip.value.plans.length > 0) {
       pendingTrip.value.plans[0].items.push({
         ...place,
@@ -303,44 +273,25 @@ export const useTripStore = defineStore('trip', () => {
     error.value = null;
     prompt.value = '';
   };
-  // Re-trigger recommendation with the current prompt
+
   const reRecommend = async () => {
-    if (!prompt.value) return;
-    await startPlanning(prompt.value);
+    if (prompt.value) await startPlanning(prompt.value);
   };
 
-  // Replace a specific item with an alternative place (Mock logic for now)
   const replaceItemWithAlternative = (index: number) => {
     if (!pendingTrip.value || !pendingTrip.value.plans[0]) return;
-    
     const items = pendingTrip.value.plans[0].items;
     if (items[index]) {
       const alternatives = [
         { title: '근처 다른 카페', addr1: '부산광역시 해운대구 우동', mapX: 129.159, mapY: 35.158 },
         { title: '숨겨진 조망 명소', addr1: '부산광역시 해운대구 중동', mapX: 129.165, mapY: 35.162 }
       ];
-      const newItem = {
+      items[index] = {
         ...items[index],
         ...alternatives[Math.floor(Math.random() * alternatives.length)],
         contentId: `alt-${Date.now()}`
       };
-      items[index] = newItem;
     }
-  };
-
-  /**
-   * Business Logic: Get travel info between two items in a trip
-   */
-  const getTravelInfoBetweenItems = (trip: TripResponse | null, fromIdx: number, toIdx: number): TravelInfo | null => {
-    if (!trip || !trip.plans[0]) return null;
-    const items = trip.plans[0].items;
-    const from = items[fromIdx];
-    const to = items[toIdx];
-    
-    if (!from || !to) return null;
-    
-    const dist = calculateDistance(from.mapY, from.mapX, to.mapY, to.mapX);
-    return estimateTravelInfo(dist);
   };
 
   return {
@@ -354,23 +305,25 @@ export const useTripStore = defineStore('trip', () => {
     historyTrips,
     communityTrips,
     visitedPlaces,
-    startPlanning,
+    pendingVisitPlace,
+    preferences,
+    fetchCommunityTrips,
+    importCommunityTrip,
+    shareTripToCommunity,
+    filterPlacesByDistrict,
+    getTravelInfoBetweenItems,
     addToRecent,
+    startPlanning,
     confirmTrip,
     recordVisit,
+    quickRecordVisit,
+    stopNavigation,
     isPlaceVisited,
     removeItemFromPending,
     reorderPendingTrip,
     addPlaceToPending,
-    reRecommend,
-    replaceItemWithAlternative,
     resetPlanner,
-    stopNavigation,
-    quickRecordVisit,
-    fetchCommunityTrips,
-    importCommunityTrip,
-    shareTripToCommunity,
-    getTravelInfoBetweenItems,
-    preferences
+    reRecommend,
+    replaceItemWithAlternative
   };
 });

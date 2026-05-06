@@ -62,13 +62,13 @@ const handlePointerDown = (index: number, e: PointerEvent) => {
   <div v-if="tripStore.pendingTrip" class="h-full flex flex-col overflow-hidden bg-slate-50/30">
     <div class="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar pb-32">
       <!-- Header -->
-      <div class="mb-10">
-        <div class="flex items-center gap-2 mb-4">
-          <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded border border-indigo-100 uppercase">AI Proposal</span>
-          <span class="text-slate-400 text-[10px] font-bold">{{ tripStore.pendingTrip.totalDuration }} 소요 예상</span>
+      <div class="mb-8">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded border border-indigo-100 uppercase">AI Proposal</span>
+          <span class="text-slate-400 text-[9px] font-bold">{{ tripStore.pendingTrip.totalDuration }} 소요 예상</span>
         </div>
-        <h3 class="text-3xl font-black text-slate-900 tracking-tight leading-tight">{{ tripStore.pendingTrip.title }}</h3>
-        <p class="text-sm font-medium text-slate-500 mt-3 leading-relaxed line-clamp-2">{{ tripStore.pendingTrip.summary }}</p>
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">{{ tripStore.pendingTrip.title }}</h3>
+        <p class="text-xs font-medium text-slate-500 mt-2 leading-relaxed line-clamp-2">{{ tripStore.pendingTrip.summary }}</p>
       </div>
 
       <!-- Timeline -->

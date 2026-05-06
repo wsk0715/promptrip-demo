@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useTripStore } from '../../services/tripService';
 import { Award, Share2, ChevronRight, Heart, MapPin, X } from 'lucide-vue-next';
+import { formatDate, getEmotionIcon } from '../../utils/formatUtils';
 
 const tripStore = useTripStore();
 const activeSubTab = ref<'mine' | 'community'>('mine');
@@ -18,25 +19,6 @@ const handleSubTabChange = (tab: 'mine' | 'community') => {
 const handleImport = (trip: any) => {
   tripStore.importCommunityTrip(trip);
   emit('view-plan');
-};
-
-const formatDate = (iso: string) => {
-  if (!iso) return '진행 중';
-  return new Date(iso).toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
-
-const getEmotionIcon = (emotion: string) => {
-  const icons: Record<string, string> = {
-    happy: '😊',
-    peaceful: '🧘',
-    excited: '🤩',
-    melancholy: '🌧️'
-  };
-  return icons[emotion] || '✨';
 };
 </script>
 
@@ -292,4 +274,5 @@ const getEmotionIcon = (emotion: string) => {
 <style scoped>
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 </style>

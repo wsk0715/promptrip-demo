@@ -3,7 +3,9 @@ import { Clock, Users, Ticket, Plus, MapPin, Star } from 'lucide-vue-next'
 import type { District } from '../../types/district'
 import type { Place } from '../../api/tourApi'
 import { computed } from 'vue'
+import { useTripStore } from '../../services/tripService'
 
+const tripStore = useTripStore()
 const props = defineProps<{
   district: District
   places: Place[]
@@ -11,32 +13,9 @@ const props = defineProps<{
 
 const emit = defineEmits(['addToCourse', 'place-select'])
 
-// Calculate distance between two points in meters
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371e3 // Earth radius in meters
-  const φ1 = lat1 * Math.PI / 180
-  const φ2 = lat2 * Math.PI / 180
-  const Δφ = (lat2 - lat1) * Math.PI / 180
-  const Δλ = (lon2 - lon1) * Math.PI / 180
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-          Math.cos(φ1) * Math.cos(φ2) *
-          Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return R * c
-}
-
+// Business logic moved to tripStore, keeping the original design intact
 const residentPlaces = computed(() => {
-  return props.places.filter(place => {
-    const dist = calculateDistance(
-      props.district.lat, 
-      props.district.lng, 
-      place.mapY, 
-      place.mapX
-    )
-    return dist <= props.district.radius
-  })
+  return tripStore.filterPlacesByDistrict(props.district, props.places)
 })
 </script>
 

@@ -5,12 +5,12 @@ import AiCourseGenerator from '../components/widgets/AiCourseGenerator.vue'
 import PendingTripWidget from '../components/widgets/PendingTripWidget.vue'
 import RouteGuidanceWidget from '../components/widgets/RouteGuidanceWidget.vue'
 import TripHistoryWidget from '../components/widgets/TripHistoryWidget.vue'
+import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
 import MapWidgetFrame from '../components/widgets/MapWidgetFrame.vue'
 import NearbyWidget from '../components/widgets/NearbyWidget.vue'
 import DistrictInfoWidget from '../components/widgets/DistrictInfoWidget.vue'
 import PlaceInfoWidget from '../components/widgets/PlaceInfoWidget.vue'
 import SearchOverlay from '../components/widgets/SearchOverlay.vue'
-import DirectionsWidget from '../components/widgets/DirectionsWidget.vue'
 import HistoryWidget from '../components/widgets/HistoryWidget.vue'
 import VisitAuthModal from '../components/widgets/VisitAuthModal.vue'
 import MyPageWidget from '../components/widgets/MyPageWidget.vue'
@@ -583,8 +583,10 @@ onMounted(async () => {
             @place-click="handlePlaceSelect"
             @edit-mode-change="handleEditModeChange"
           />
-          <TripHistoryWidget 
+          <DirectionsWidget 
             v-else
+            :recentCourses="tripStore.recentTrips" 
+            @selectCourse="handleHistorySelect" 
           />
         </MapWidgetFrame>
 
