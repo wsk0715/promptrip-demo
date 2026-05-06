@@ -8,7 +8,7 @@ const props = defineProps<{
   districts: any[]
 }>()
 
-const activeTab = ref<'district' | 'place'>('place')
+const activeTab = ref<'district' | 'place'>('district')
 const emit = defineEmits(['select-district', 'select-place'])
 const imageErrors = ref<Record<string, boolean>>({})
 

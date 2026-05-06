@@ -454,7 +454,7 @@ onMounted(async () => {
         />
 
         <!-- Side Buttons -->
-        <div class="absolute right-4 bottom-[4rem] z-30 flex flex-col gap-3">
+        <div class="absolute right-4 bottom-[6rem] z-30 flex flex-col gap-3">
           <button 
             @click="goToCurrentLocation"
             class="w-12 h-12 bg-white text-indigo-600 rounded-2xl shadow-lg flex items-center justify-center active:scale-90 transition-all border border-slate-100"

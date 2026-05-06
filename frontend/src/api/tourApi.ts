@@ -104,6 +104,38 @@ export const getNearbyPlaces = async (_lat: number, _lng: number, _radius: numbe
       rating: 4.6,
       reviewCount: 1100,
       isOpen: true
+    },
+    {
+      contentId: "p6",
+      title: "풍원장 미역국정찬",
+      addr1: "부산광역시 해운대구 마린시티3로 51",
+      addr2: "",
+      firstImage: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=400&q=80",
+      firstImage2: "",
+      mapX: 129.1435,
+      mapY: 35.1552,
+      tel: "051-747-5115",
+      contentTypeId: "39",
+      dist: 200,
+      rating: 4.7,
+      reviewCount: 4200,
+      isOpen: true
+    },
+    {
+      contentId: "p7",
+      title: "옵스 마린시티점",
+      addr1: "부산광역시 해운대구 마린시티1로 167",
+      addr2: "",
+      firstImage: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80",
+      firstImage2: "",
+      mapX: 129.1422,
+      mapY: 35.1541,
+      tel: "051-743-1959",
+      contentTypeId: "39",
+      dist: 350,
+      rating: 4.6,
+      reviewCount: 2800,
+      isOpen: true
     }
   ];
 

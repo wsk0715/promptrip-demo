@@ -12,9 +12,9 @@ export const getRecommendedDistricts = async (): Promise<ApiResult<District[]>> 
     {
       id: "mock-1",
       name: "해운대 마린시티 로컬",
-      lat: 35.1565,
-      lng: 129.1552,
-      radius: 250,
+      lat: 35.1545,
+      lng: 129.1435,
+      radius: 500,
       color: "#FFD700", // 노란빛 (방문 권장)
       intensity: 9,
       description: "화려한 고층 빌딩 숲 사이 숨겨진 감성 바다 산책로와 테라스 카페가 가득합니다.",
